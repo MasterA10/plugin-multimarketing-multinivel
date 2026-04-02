@@ -1,0 +1,170 @@
+/**
+ * Luxurious Members Area Styling - Gold & Black Edition
+ */
+
+:root {
+    --gold-primary: #d4af37;
+    --gold-gradient: linear-gradient(135deg, #d4af37 0%, #f9e2af 50%, #b8860b 100%);
+    --dark-bg: #0a0a0a;
+    --dark-card: #161616;
+    --text-white: #ffffff;
+    --text-silver: #a0a0a0;
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Inter', sans-serif;
+}
+
+.mlm-container {
+    background-color: var(--dark-bg);
+    color: var(--text-white);
+    font-family: var(--font-sans);
+    padding: 40px 20px;
+    min-height: 100vh;
+    border-radius: 12px;
+}
+
+.mlm-title-serif {
+    font-family: var(--font-serif);
+    color: var(--gold-primary);
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.mlm-subtitle {
+    color: var(--text-silver);
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+}
+
+/* Grid Layout */
+.mlm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+/* Cards */
+.mlm-card {
+    background: var(--dark-card);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.mlm-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(212, 175, 55, 0.1);
+    border-color: var(--gold-primary);
+}
+
+.mlm-card-image img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+.mlm-card-content {
+    padding: 25px;
+}
+
+.mlm-card-title-serif {
+    font-family: var(--font-serif);
+    color: var(--gold-primary);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+/* Buttons */
+.mlm-btn-gold {
+    display: inline-block;
+    background: var(--gold-gradient);
+    color: #000;
+    padding: 12px 25px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.mlm-btn-gold:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(212, 175, 55, 0.4);
+    opacity: 0.9;
+}
+
+/* Login Box */
+.mlm-login-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.mlm-login-wrapper {
+    max-width: 450px;
+    width: 100%;
+    background: var(--dark-card);
+    padding: 50px;
+    border-radius: 20px;
+    border: 1px solid var(--gold-primary);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+}
+
+.mlm-login-wrapper form {
+    margin-top: 30px;
+    text-align: left;
+}
+
+.mlm-login-wrapper label {
+    display: block;
+    color: var(--gold-primary);
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.mlm-login-wrapper input[type="text"],
+.mlm-login-wrapper input[type="password"] {
+    width: 100%;
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.mlm-login-wrapper input[type="submit"] {
+    width: 100%;
+    background: var(--gold-gradient);
+    color: #000;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.mlm-login-wrapper input[type="submit"]:hover {
+    opacity: 0.8;
+}
+
+/* Alerts */
+.mlm-alert {
+    background: rgba(212, 175, 55, 0.1);
+    border-left: 4px solid var(--gold-primary);
+    padding: 15px;
+    margin-bottom: 20px;
+    color: var(--gold-primary);
+}
