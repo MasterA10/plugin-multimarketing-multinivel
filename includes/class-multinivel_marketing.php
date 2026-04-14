@@ -191,7 +191,8 @@ class Multinivel_marketing {
 		$this->loader->add_action( 'init', $plugin_discounts, 'ensure_roles_exist' );
 		
 		if ( ! is_admin() || defined( 'DOING_AJAX' ) ) {
-			$this->loader->add_action( 'woocommerce_cart_calculate_fees', $plugin_discounts, 'apply_custom_discounts', 20, 1 );
+			// Removed to fix duplicate discount application with Expressive_Engine
+			// $this->loader->add_action( 'woocommerce_cart_calculate_fees', $plugin_discounts, 'apply_custom_discounts', 20, 1 );
 			$this->loader->add_action( 'woocommerce_created_customer', $plugin_discounts, 'assign_role_on_registration', 10, 1 );
 			$this->loader->add_action( 'woocommerce_checkout_order_processed', $plugin_discounts, 'assign_role_on_checkout', 10, 3 );
 		}

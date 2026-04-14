@@ -11,6 +11,30 @@ if ( ! current_user_can( 'manage_options' ) ) {
 // Logic for saving settings
 if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycle_nonce' ) ) {
     update_option( 'lms_cycle_end_date', sanitize_text_field( $_POST['cycle_date'] ) );
+    if ( isset( $_POST['educator_upgrade_link'] ) ) {
+        update_option( 'lms_educator_upgrade_link', esc_url_raw( $_POST['educator_upgrade_link'] ) );
+    }
+    
+    // Referral Product Restrictions
+    if ( isset( $_POST['eligible_products'] ) ) {
+        update_option( 'lms_eligible_products', sanitize_text_field( $_POST['eligible_products'] ) );
+    }
+    if ( isset( $_POST['excluded_discount_products'] ) ) {
+        update_option( 'lms_excluded_discount_products', sanitize_text_field( $_POST['excluded_discount_products'] ) );
+    }
+    $all_eligible = isset( $_POST['all_products_eligible'] ) ? 'yes' : 'no';
+    update_option( 'lms_all_products_eligible', $all_eligible );
+
+    $enable_woo_log = isset( $_POST['enable_woo_logging'] ) ? 'yes' : 'no';
+    update_option( 'lms_enable_woo_logging', $enable_woo_log );
+
+    $show_commissions = isset( $_POST['show_commissions'] ) ? 'yes' : 'no';
+    update_option( 'lms_show_commissions', $show_commissions );
+
+    if ( isset( $_POST['commission_percentage'] ) ) {
+        update_option( 'lms_commission_percentage', intval( $_POST['commission_percentage'] ) );
+    }
+
     echo '<div class="updated notice is-dismissible"><p>Configurações salvas com sucesso!</p></div>';
 }
 
@@ -21,6 +45,12 @@ if ( isset( $_POST['lms_reset_cycle'] ) && check_admin_referer( 'lms_reset_cycle
 }
 
 $current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
+$educator_link = get_option( 'lms_educator_upgrade_link', '#' );
+$eligible_products = get_option( 'lms_eligible_products', '' );
+$all_eligible = get_option( 'lms_all_products_eligible', 'yes' );
+$enable_woo_log = get_option( 'lms_enable_woo_logging', 'no' );
+$show_commissions = get_option( 'lms_show_commissions', 'yes' );
+$commission_pct = get_option( 'lms_commission_percentage', 10 );
 ?>
 
 <div class="elite-admin-wrap bg-[#111] text-white min-h-screen p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans max-w-4xl">
@@ -39,22 +69,81 @@ $current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
     </header>
 
     <div class="space-y-8">
-        <!-- Cycle Management Card -->
+        <!-- Cycle & Referral Management Card -->
         <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/5 rounded-full blur-3xl group-hover:bg-gold-500/10 transition-all"></div>
             
             <h3 class="text-xl font-bold font-serif italic mb-6 flex items-center gap-3" style="color: #D4AF37 !important;">
                 <span class="w-2 h-6 bg-gold-500 rounded-full"></span>
-                Programação do Ciclo (Marco Zero)
+                Regras de Negócio e Ciclo
             </h3>
             
             <form method="post" action="" class="space-y-6">
                 <?php wp_nonce_field( 'lms_save_cycle_nonce' ); ?>
                 
-                <div class="space-y-2">
-                    <label for="cycle_date" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Data de Encerramento do Ano</label>
-                    <input name="cycle_date" type="date" id="cycle_date" value="<?php echo esc_attr( $current_end_date ); ?>" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
-                    <p class="text-[11px] text-gray-300 leading-relaxed italic mt-2">Esta data define o limite para a contagem do ranking anual. Os resultados serão congelados para a premiação Top 3.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="cycle_date" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Data de Encerramento do Ano</label>
+                        <input name="cycle_date" type="date" id="cycle_date" value="<?php echo esc_attr( $current_end_date ); ?>" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                        <p class="text-[9px] text-gray-500 italic mt-1">Limite para contagem do ranking anual.</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="all_products_eligible" class="text-[11px] font-bold uppercase tracking-widest text-gold-400 block mb-3">Elegibilidade de Produtos</label>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input name="all_products_eligible" type="checkbox" id="all_products_eligible" value="yes" <?php checked( $all_eligible, 'yes' ); ?> class="w-5 h-5 bg-black/40 border border-white/10 rounded text-gold-500 focus:ring-gold-500">
+                            <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Qualquer Produto gera Indicação</span>
+                        </label>
+                        <p class="text-[9px] text-gray-500 italic mt-1">Se desmarcado, apenas os IDs abaixo serão válidos.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-6 border-t border-white/5 <?php echo ($all_eligible === 'yes') ? 'opacity-30 pointer-events-none' : ''; ?>" id="eligible-products-container">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">IDs de Produtos Elegíveis</label>
+                    <div class="tag-input-wrapper bg-black/40 border border-white/10 rounded-xl p-3 focus-within:border-gold-500/50 transition-all flex flex-wrap gap-2 items-center min-h-[56px]" id="eligible-tags-container">
+                        <!-- Tags will be rendered here via JS -->
+                        <input type="text" id="eligible-input-trigger" placeholder="Digite ID e Enter..." class="flex-1 bg-transparent border-none outline-none text-white text-sm min-w-[120px] p-1 font-mono">
+                    </div>
+                    <input name="eligible_products" type="hidden" id="eligible_products" value="<?php echo esc_attr( $eligible_products ); ?>">
+                    <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Pressione <strong>Enter</strong> ou <strong>Vírgula</strong> para adicionar. Apenas números.</p>
+                </div>
+
+                <!-- NEW: Excluded from Discount -->
+                <div class="space-y-3 pt-6 border-t border-white/5">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">IDs de Produtos Excluídos do Desconto (30%/40%)</label>
+                    <div class="tag-input-wrapper bg-black/40 border border-white/10 rounded-xl p-3 focus-within:border-gold-500/50 transition-all flex flex-wrap gap-2 items-center min-h-[56px]" id="excluded-tags-container">
+                        <!-- Tags will be rendered here via JS -->
+                        <input type="text" id="excluded-input-trigger" placeholder="Digite ID e Enter..." class="flex-1 bg-transparent border-none outline-none text-white text-sm min-w-[120px] p-1 font-mono">
+                    </div>
+                    <?php $excluded_ids = get_option( 'lms_excluded_discount_products', '' ); ?>
+                    <input name="excluded_discount_products" type="hidden" id="excluded_discount_products" value="<?php echo esc_attr( $excluded_ids ); ?>">
+                    <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Os produtos listados aqui não terão desconto Elite aplicado nas regras de checkout.</p>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-white/5">
+                    <label for="educator_upgrade_link" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Link de Upgrade para Educadora</label>
+                    <input name="educator_upgrade_link" type="url" id="educator_upgrade_link" value="<?php echo esc_attr( $educator_link ); ?>" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                    <p class="text-[11px] text-gray-300 leading-relaxed italic mt-1">Este link será aplicado ao botão "Quero ser Educadora" que aparece para usuários de nível Autoridade no Dashboard.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                    <div class="space-y-4">
+                        <label for="show_commissions" class="text-[11px] font-bold uppercase tracking-widest text-gold-400 block mb-3">Visibilidade Financeira (Área de Membros)</label>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input name="show_commissions" type="checkbox" id="show_commissions" value="yes" <?php checked( $show_commissions, 'yes' ); ?> class="w-5 h-5 bg-black/40 border border-white/10 rounded text-gold-500 focus:ring-gold-500">
+                            <span class="text-sm text-gray-300 group-hover:text-white transition-colors">Exibir Valores e Comissões na Rede</span>
+                        </label>
+                        <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Se desmarcado, todos os valores de R$, vendas e comissões serão ocultados do Dashboard do aluno.</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="commission_percentage" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Porcentagem de Comissão (%)</label>
+                        <div class="relative">
+                            <input name="commission_percentage" type="number" id="commission_percentage" value="<?php echo esc_attr( $commission_pct ); ?>" min="0" max="100" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none font-mono">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gold-500 font-bold opacity-50">%</span>
+                        </div>
+                        <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Valor aplicado sobre o total de cada venda indicada.</p>
+                    </div>
                 </div>
 
                 <div class="pt-4">
@@ -88,15 +177,10 @@ $current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
 
         <!-- System Info Card -->
         <div class="glass p-8 rounded-3xl border border-white/5">
-            <h4 class="text-[10px] font-bold uppercase tracking-[0.3em] mb-4" style="color: #D4AF37 !important;">Motor de Inteligência Gamificada</h4>
+            <h4 class="text-[10px] font-bold uppercase tracking-[0.3em] mb-4" style="color: #D4AF37 !important;">Monitoramento do Ecossistema</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-black/40 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                    <span class="text-xs text-gray-500">Log de Vendas</span>
-                    <span class="text-[10px] bg-green-500/10 text-green-500 px-2 py-1 rounded font-bold">SINCRONIZADO</span>
-                </div>
-                <div class="bg-black/40 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                    <span class="text-xs text-gray-500">Cálculo de Ranking</span>
-                    <span class="text-[10px] bg-gold-400/10 text-gold-400 px-2 py-1 rounded font-bold">ATIVO</span>
+                    <span class="text-xs text-gray-500">Motor Gamificado</span>
+                    <span class="text-[10px] bg-gold-400/10 text-gold-400 px-2 py-1 rounded font-bold uppercase tracking-widest">Ativo</span>
                 </div>
             </div>
         </div>
@@ -118,6 +202,7 @@ $current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
     /* Override inherited WP Admin Gray Styles */
     .elite-admin-wrap input[type="date"], 
     .elite-admin-wrap input[type="text"],
+    .elite-admin-wrap input[type="url"],
     .elite-admin-wrap select {
         color: white !important;
         background-color: rgba(0,0,0,0.6) !important;
@@ -130,4 +215,127 @@ $current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
         background-color: #111 !important;
         color: white !important;
     }
+
+    /* Tag Input Styles */
+    .tag-chip {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(242, 212, 128, 0.05));
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        color: #D4AF37;
+        padding: 4px 10px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: 'Outfit', sans-serif;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        animation: elite-chip-in 0.2s ease-out;
+    }
+
+    @keyframes elite-chip-in { from { opacity: 0; scale: 0.9; transform: translateY(2px); } to { opacity: 1; scale: 1; transform: translateY(0); } }
+
+    .tag-chip .remove-tag {
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(212, 175, 55, 0.2);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 8px;
+        color: #D4AF37;
+    }
+
+    .tag-chip .remove-tag:hover {
+        background: #D4AF37;
+        color: #000;
+    }
+
+    .tag-input-trigger::placeholder {
+        color: rgba(255,255,255,0.2);
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. All Products Eligible Checkbox Logic
+    const checkbox = document.getElementById('all_products_eligible');
+    const container = document.getElementById('eligible-products-container');
+    
+    if (checkbox && container) {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                container.classList.add('opacity-30', 'pointer-events-none');
+            } else {
+                container.classList.remove('opacity-30', 'pointer-events-none');
+            }
+        });
+    }
+
+    // 2. Interactive Interactive ID Tag Logic
+    const initIDSys = (wrapperId, triggerId, hiddenId) => {
+        const wrapper = document.getElementById(wrapperId);
+        const trigger = document.getElementById(triggerId);
+        const hiddenField = document.getElementById(hiddenId);
+        
+        if (!wrapper || !trigger || !hiddenField) return;
+
+        let ids = hiddenField.value.split(',').map(s => s.trim()).filter(s => s !== '');
+
+        const renderTags = () => {
+            // Clear existing tags but keep trigger input
+            wrapper.querySelectorAll('.tag-chip').forEach(t => t.remove());
+            
+            ids.forEach((id, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'tag-chip';
+                chip.innerHTML = `
+                    <span>${id}</span>
+                    <span class="remove-tag" onclick="removeEliteID('${hiddenId}', ${index})">✕</span>
+                `;
+                wrapper.insertBefore(chip, trigger);
+            });
+            
+            hiddenField.value = ids.join(',');
+        };
+
+        // Window exposed function for click removal
+        window.removeEliteID = (hid, idx) => {
+            const hf = document.getElementById(hid);
+            if (!hf) return;
+            let currentIds = hf.value.split(',').filter(s => s !== '');
+            currentIds.splice(idx, 1);
+            hf.value = currentIds.join(',');
+            // Re-render both to be safe
+            initIDSys('eligible-tags-container', 'eligible-input-trigger', 'eligible_products');
+            initIDSys('excluded-tags-container', 'excluded-input-trigger', 'excluded_discount_products');
+        };
+
+        trigger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                const val = trigger.value.replace(/[^0-9]/g, '').trim();
+                
+                if (val && !ids.includes(val)) {
+                    ids.push(val);
+                    trigger.value = '';
+                    renderTags();
+                }
+            }
+            if (e.key === 'Backspace' && trigger.value === '' && ids.length > 0) {
+                ids.pop();
+                renderTags();
+            }
+        });
+
+        // Initialize first render
+        renderTags();
+    };
+
+    initIDSys('eligible-tags-container', 'eligible-input-trigger', 'eligible_products');
+    initIDSys('excluded-tags-container', 'excluded-input-trigger', 'excluded_discount_products');
+});
+</script>

@@ -90,7 +90,12 @@ if(!is_array($completed)) $completed = array();
 $completed_count = 0;
 foreach($lessons as $l) { if(in_array($l->ID, $completed)) $completed_count++; }
 $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons)) * 100) : 0;
+
+// Access Check
+$access_checker = new Expressive_Access();
+$has_access = $access_checker->has_active_subscription($user_id);
 ?>
+
 
 
 <div class="bg-black text-white min-h-screen font-sans">
@@ -100,7 +105,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
         <div class="flex items-center gap-4">
             <a href="<?php echo home_url('/area-de-membros'); ?>" class="group flex items-center gap-3 text-zinc-400 hover:text-gold-500 transition-all">
                 <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-gold-500/30">
-                    <span class="dashicons dashicons-arrow-left-alt2"></span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </div>
                 <span class="text-[10px] font-bold uppercase tracking-widest">Painel do Membro</span>
             </a>
@@ -132,7 +137,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                         <div class="flex flex-wrap justify-center md:justify-start gap-8">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gold-500">
-                                    <span class="dashicons dashicons-clock"></span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
                                 <div>
                                     <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Carga Horária</p>
@@ -141,7 +146,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gold-500">
-                                    <span class="dashicons dashicons-video-alt3"></span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                 </div>
                                 <div>
                                     <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Conteúdo</p>
@@ -150,7 +155,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gold-500">
-                                    <span class="dashicons dashicons-awards"></span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
                                 </div>
                                 <div>
                                     <p class="text-[10px] text-zinc-500 uppercase font-bold tracking-tighter">Seu Progresso</p>
@@ -175,9 +180,15 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                         <h2 class="text-2xl font-serif text-white">Cronograma de Treino</h2>
                         <p class="text-sm text-zinc-500 mt-1">Siga a jornada para desbloquear seu potencial máximo.</p>
                     </div>
-                    <a href="<?php echo get_permalink($lessons[0]->ID); ?>" class="bg-gold-500 hover:bg-gold-400 text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
-                        Continuar de onde parei
-                    </a>
+                    <?php if($has_access): ?>
+                        <a href="<?php echo get_permalink($lessons[0]->ID); ?>" class="bg-gold-500 hover:bg-gold-400 text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
+                            Continuar de onde parei
+                        </a>
+                    <?php else: ?>
+                        <div class="px-6 py-3 bg-white/5 border border-white/10 text-zinc-600 rounded-xl text-[10px] font-bold uppercase tracking-widest select-none opacity-50">
+                            Acesso Restrito
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="space-y-8">
@@ -197,7 +208,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                             <?php echo get_the_post_thumbnail($module->ID, array(64, 64), array('class' => 'object-cover w-full h-full')); ?>
                                         <?php else: ?>
                                             <div class="w-full h-full flex items-center justify-center text-zinc-600">
-                                                <span class="dashicons dashicons-category text-2xl"></span>
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                             </div>
                                         <?php endif; ?>
                                     </div>
@@ -212,15 +223,15 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                             if($m_duration): 
                                             ?>
                                                 <span class="w-1 h-1 bg-zinc-700 rounded-full"></span>
-                                                <p class="text-[10px] text-gold-500/60 uppercase tracking-widest font-bold">
-                                                    <span class="dashicons dashicons-clock text-[10px] mr-1"></span>
+                                                <p class="text-[10px] text-gold-500/60 uppercase tracking-widest font-bold flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                                     <?php echo $m_duration; ?> min
                                                 </p>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
-                                <span class="dashicons dashicons-arrow-down-alt2 text-zinc-600"></span>
+                                <svg class="w-5 h-5 text-zinc-600 transition-transform group-hover:text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
 
                             <!-- Lessons in Module -->
@@ -234,8 +245,10 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                     <a href="<?php echo get_permalink($lesson->ID); ?>" class="group block p-4 bg-zinc-900/40 hover:bg-zinc-900 rounded-2xl border border-white/5 border-l-2 <?php echo $is_done ? 'border-l-gold-500' : 'border-l-zinc-800 hover:border-l-gold-500/50'; ?> transition-all">
                                                         <div class="flex items-center gap-6">
                                                             <div class="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-zinc-600 group-hover:text-gold-500 transition-colors border border-white/5">
-                                                                <?php if($is_done): ?>
-                                                                    <span class="dashicons dashicons-yes-alt text-gold-500"></span>
+                                                                <?php if(!$has_access): ?>
+                                                                    <svg class="w-4 h-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                                                <?php elseif($is_done): ?>
+                                                                    <svg class="w-5 h-5 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                                 <?php else: ?>
                                                                     <span class="text-md font-serif italic"><?php echo str_pad($lesson_number++, 2, '0', STR_PAD_LEFT); ?></span>
                                                                 <?php endif; ?>
@@ -250,7 +263,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                                                 </div>
                                                             </div>
                                                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-zinc-700 md:opacity-0 group-hover:opacity-100 transition-all">
-                                                                <span class="dashicons dashicons-arrow-right-alt2 text-sm"></span>
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                                             </div>
                                                         </div>
                                     </a>
@@ -283,8 +296,10 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                         <!-- Same internal structure for orphan lesson -->
                                         <div class="flex items-center gap-6">
                                             <div class="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-zinc-600 group-hover:text-gold-500 transition-colors border border-white/5">
-                                                <?php if($is_done): ?>
-                                                    <span class="dashicons dashicons-yes-alt text-gold-500"></span>
+                                                <?php if(!$has_access): ?>
+                                                    <svg class="w-4 h-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002 -2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                                <?php elseif($is_done): ?>
+                                                    <svg class="w-5 h-5 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                 <?php else: ?>
                                                     <span class="text-md font-serif italic"><?php echo str_pad($lesson_number++, 2, '0', STR_PAD_LEFT); ?></span>
                                                 <?php endif; ?>
@@ -296,7 +311,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                                                 </div>
                                             </div>
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-zinc-700 md:opacity-0 group-hover:opacity-100 transition-all">
-                                                <span class="dashicons dashicons-arrow-right-alt2 text-sm"></span>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                             </div>
                                         </div>
                                     </a>
@@ -330,7 +345,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                         if ($progress_pct >= 75): ?>
                             <div class="mt-10 p-6 bg-gold-500/10 border border-gold-500/20 rounded-2xl text-center group hover:bg-gold-500/20 transition-all shadow-xl shadow-gold-500/5">
                                 <div class="w-16 h-16 rounded-full bg-gold-500 flex items-center justify-center text-black mx-auto mb-4 shadow-lg shadow-gold-500/20 group-hover:scale-110 transition-transform">
-                                    <span class="dashicons dashicons-awards" style="font-size: 30px; width: 30px; height: 30px;"></span>
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"></path></svg>
                                 </div>
                                 <h4 class="text-sm font-bold text-white uppercase tracking-widest mb-2 font-serif italic">Maestria Alcançada</h4>
                                 <p class="text-[10px] text-zinc-400 uppercase tracking-widest mb-6 leading-relaxed">Você já concluiu mais de 75% deste treinamento e garantiu sua credencial de Especialista Elite!</p>
@@ -341,7 +356,7 @@ $progress_pct = count($lessons) > 0 ? round(($completed_count / count($lessons))
                             </div>
                         <?php else: ?>
                             <div class="mt-10 p-6 bg-zinc-900/40 border border-white/5 rounded-2xl text-center opacity-40">
-                                <span class="dashicons dashicons-lock text-zinc-700 text-3xl mb-3"></span>
+                                <svg class="w-8 h-8 text-zinc-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                                 <p class="text-[9px] text-zinc-600 uppercase tracking-widest leading-relaxed">Conclua 75% da jornada para liberar seu Certificado de Especialista.</p>
                             </div>
                         <?php endif; ?>

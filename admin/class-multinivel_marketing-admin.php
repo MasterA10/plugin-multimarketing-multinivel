@@ -113,6 +113,15 @@ class Multinivel_marketing_Admin {
 			'dashicons-vault',
 			25
 		);
+
+		add_submenu_page(
+			'mlm-settings',
+			'Assinantes',
+			'Assinantes',
+			'manage_options',
+			'mlm-subscribers',
+			array( $this, 'render_subscribers_page' )
+		);
 	}
 
 	/**
@@ -132,7 +141,135 @@ class Multinivel_marketing_Admin {
 				</ul>
 				<hr>
 				<p>Para adicionar conteúdos, vá em "Cursos" e "Aulas" no menu lateral.</p>
+				<p>Para gerenciar acessos, acesse o submenu <strong><a href="admin.php?page=mlm-subscribers">Assinantes</a></strong>.</p>
 			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render the Subscribers (Assinantes) page & handle submission.
+	 */
+	public function render_subscribers_page() {
+		// Processar ações de suspensão/reativação
+		if ( isset( $_POST['mlm_action'] ) && isset( $_POST['user_id'] ) && current_user_can( 'manage_options' ) ) {
+			check_admin_referer( 'mlm_toggle_subscription' );
+			$user_id = intval( $_POST['user_id'] );
+			
+			if ( $_POST['mlm_action'] === 'suspend' ) {
+				Expressive_Access::update_access_status( $user_id, 'blocked' );
+				echo '<div class="notice notice-warning is-dismissible"><p>Acesso suspenso para o usuário ID ' . $user_id . '.</p></div>';
+			} elseif ( $_POST['mlm_action'] === 'activate' ) {
+				Expressive_Access::update_access_status( $user_id, 'active' );
+				echo '<div class="notice notice-success is-dismissible"><p>Acesso ativado para o usuário ID ' . $user_id . '.</p></div>';
+			}
+		}
+
+		// Buscar usuários (incluindo administradores para controle total)
+		$users = get_users( array(
+			'role__in' => array( 'educadora', 'autoridade', 'administrator' )
+		) );
+
+		?>
+		<div class="wrap">
+			<h1 class="wp-heading-inline">Gerenciar Assinantes Elite</h1>
+			<hr class="wp-header-end">
+			<p>Abaixo estão todas as Educadoras e Autoridades conectadas ao sistema. Você pode suspender o acesso daqueles que não estiverem com a mensalidade em dia.</p>
+			
+			<table class="wp-list-table widefat fixed striped table-view-list users">
+				<thead>
+					<tr>
+						<th class="manage-column">Nome</th>
+						<th class="manage-column">E-mail</th>
+						<th class="manage-column">Função</th>
+						<th class="manage-column">Indicado por</th>
+						<th class="manage-column">Status da Assinatura</th>
+						<th class="manage-column">Ações</th>
+					</tr>
+				</thead>
+				<tbody id="the-list">
+					<?php if ( empty( $users ) ) : ?>
+						<tr class="no-items"><td class="colspanchange" colspan="6">Nenhum assinante encontrado.</td></tr>
+					<?php else : ?>
+						<?php foreach ( $users as $u ) : 
+							$roles = (array) $u->roles;
+							$is_admin = in_array( 'administrator', $roles );
+
+							// Identificação amigável de papel
+							if ( $is_admin ) {
+								$role_name = '<span style="background: #111; color: #d4af37; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; border: 1px solid #d4af37;">Administrador</span>';
+							} elseif ( in_array( 'educadora', $roles ) ) {
+								$role_name = 'Educadora';
+							} else {
+								$role_name = 'Autoridade';
+							}
+
+							// Resolver nome do indicador (Busca Híbrida)
+							global $wpdb;
+							$table_referrals = $wpdb->prefix . 'lms_referrals';
+							
+							// 1. Tentar buscar na tabela oficial do plugin
+							$db_educator_id = $wpdb->get_var($wpdb->prepare(
+								"SELECT educator_id FROM $table_referrals WHERE authority_id = %d LIMIT 1",
+								$u->ID
+							));
+
+							$referrer = '-';
+							if ( $db_educator_id ) {
+								$ref_obj = get_userdata( $db_educator_id );
+								$referrer = $ref_obj ? $ref_obj->display_name : '-';
+							} else {
+								// 2. Fallback: buscar no usermeta legada
+								$referrer_login = get_user_meta( $u->ID, '_exp_referred_by', true );
+								if ( $referrer_login ) {
+									$ref_obj = get_user_by( 'login', $referrer_login );
+									$referrer = $ref_obj ? $ref_obj->display_name : $referrer_login;
+								}
+							}
+							
+							$access_checker = new Expressive_Access();
+							$is_active = $access_checker->has_active_subscription( $u->ID );
+						?>
+						<tr>
+							<td class="username column-username has-row-actions column-primary">
+								<strong><?php echo esc_html( $u->display_name ); ?></strong>
+							</td>
+							<td class="email column-email">
+								<a href="mailto:<?php echo esc_attr( $u->user_email ); ?>"><?php echo esc_html( $u->user_email ); ?></a>
+							</td>
+							<td class="role column-role"><?php echo $role_name; ?></td>
+							<td class="role column-role"><?php echo esc_html( $referrer ); ?></td>
+							<td class="role column-role">
+								<?php if ( $is_admin ) : ?>
+									<span style="color: #d4af37; font-weight: bold;">💎 Acesso Vitalício</span>
+								<?php elseif ( ! $is_active ) : ?>
+									<span style="color: #d63638; font-weight: bold;">⛔ Suspenso / Vencido</span>
+								<?php else: ?>
+									<span style="color: #00a32a; font-weight: bold;">✅ Ativo</span>
+								<?php endif; ?>
+							</td>
+							<td class="role column-role">
+								<?php if ( ! $is_admin ) : ?>
+									<form method="post" style="display:inline-block;">
+										<?php wp_nonce_field( 'mlm_toggle_subscription' ); ?>
+										<input type="hidden" name="user_id" value="<?php echo $u->ID; ?>">
+										<?php if ( ! $is_active ) : ?>
+											<input type="hidden" name="mlm_action" value="activate">
+											<button type="submit" class="button button-primary">Reativar Acesso</button>
+										<?php else: ?>
+											<input type="hidden" name="mlm_action" value="suspend">
+											<button type="submit" class="button" style="color: #d63638; border-color: #d63638;">Suspender Acesso</button>
+										<?php endif; ?>
+									</form>
+								<?php else : ?>
+									<span class="description">Imunidade Ativa</span>
+								<?php endif; ?>
+							</td>
+						</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</tbody>
+			</table>
 		</div>
 		<?php
 	}

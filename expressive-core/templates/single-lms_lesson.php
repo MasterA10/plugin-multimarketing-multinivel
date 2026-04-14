@@ -98,16 +98,30 @@ $user_id = get_current_user_id();
 $completed = get_user_meta($user_id, '_lms_completed_lessons', true);
 if(!is_array($completed)) $completed = array();
 $is_watched = in_array($lesson_id, $completed);
+// Access Check
+$access_checker = new Expressive_Access();
+$has_access = $access_checker->has_active_subscription($user_id);
+
+// Supporting Materials
+$supporting_files = get_post_meta( $lesson_id, '_lms_files_data', true );
+if ( ! is_array( $supporting_files ) ) $supporting_files = array();
 ?>
 
 
-<div class="bg-black text-white min-h-screen flex flex-col font-sans">
+<div class="bg-black text-white min-h-screen flex flex-col font-sans relative">
     
+    <!-- LOCKED WATERMARK (Optional subtle cue) -->
+    <?php if(!$has_access): ?>
+        <div class="fixed top-20 left-10 opacity-10 pointer-events-none rotate-12 z-0 hidden lg:block">
+            <span class="text-8xl font-black text-gold-500 uppercase tracking-widest select-none">Preview</span>
+        </div>
+    <?php endif; ?>
+
     <!-- Top Navigation -->
     <nav class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black/90 backdrop-blur-xl z-50 sticky top-0">
         <div class="flex items-center gap-4">
             <a href="<?php echo $course_id ? get_permalink($course_id) : '#'; ?>" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-gold-500 transition-all">
-                <span class="dashicons dashicons-arrow-left-alt2"></span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </a>
             <div>
                 <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 line-clamp-1">
@@ -120,12 +134,12 @@ $is_watched = in_array($lesson_id, $completed);
         <div class="flex items-center gap-6">
             <!-- Hamburger Menu Button (Mobile Only) -->
             <button onclick="toggleSyllabus()" class="lg:hidden w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 hover:bg-gold-500 hover:text-black transition-all">
-                <span class="dashicons dashicons-menu"></span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
             </button>
 
             <a href="<?php echo home_url('/area-de-membros'); ?>" class="group flex items-center gap-3 text-zinc-400 hover:text-gold-500 transition-all border-r border-white/10 pr-6 mr-2 hidden md:flex">
                 <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-gold-500/30">
-                    <span class="dashicons dashicons-grid-view"></span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                 </div>
                 <span class="hidden md:block text-[10px] font-bold uppercase tracking-widest">Dashboard</span>
             </a>
@@ -143,16 +157,39 @@ $is_watched = in_array($lesson_id, $completed);
             <!-- Video Player (Cinema Mode) -->
             <div class="max-w-6xl mx-auto w-full">
                 <div class="aspect-video bg-black rounded-3xl border border-white/5 shadow-2xl overflow-hidden relative group">
-                    <?php if($youtube_id): ?>
-                        <div class="absolute inset-0 scale-[1.04] pointer-events-none">
-                            <iframe width="100%" height="100%" src="https://www.youtube.com/embed/<?php echo esc_attr($youtube_id); ?>?rel=0&modestbranding=1&showinfo=0&autoplay=0&controls=1&iv_load_policy=3" 
-                                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
-                                    class="w-full h-full pointer-events-auto"></iframe>
-                        </div>
+                    <?php if($has_access): ?>
+                        <?php if($youtube_id): ?>
+                            <div class="absolute inset-0 scale-[1.04] pointer-events-none">
+                                <iframe width="100%" height="100%" src="https://www.youtube.com/embed/<?php echo esc_attr($youtube_id); ?>?rel=0&modestbranding=1&showinfo=0&autoplay=0&controls=1&iv_load_policy=3" 
+                                        frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+                                        class="w-full h-full pointer-events-auto"></iframe>
+                            </div>
+                        <?php else: ?>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 space-y-4">
+                                <span class="dashicons dashicons-video-alt3 text-6xl opacity-20"></span>
+                                <p class="font-bold uppercase tracking-widest text-xs">Aguardando sinal de vídeo...</p>
+                            </div>
+                        <?php endif; ?>
                     <?php else: ?>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-                            <span class="dashicons dashicons-video-alt3 text-6xl opacity-20"></span>
-                            <p class="font-bold uppercase tracking-widest text-xs">Aguardando sinal de vídeo...</p>
+                        <!-- ELITE LOCKED CONTENT UI -->
+                        <div class="absolute inset-0 bg-[#070707] flex flex-col items-center justify-center p-8 text-center overflow-hidden">
+                            <!-- Background Decoration -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-gold-500/5 via-transparent to-transparent opacity-50"></div>
+                            <div class="absolute w-96 h-96 bg-gold-500/5 rounded-full blur-[100px] -top-20 -right-20"></div>
+
+                            <div class="relative z-10 flex flex-col items-center max-w-md">
+                                <div class="w-16 h-16 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 mb-6 shadow-2xl shadow-gold-500/10 scale-110">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                </div>
+                                <h3 class="text-2xl font-serif italic text-white mb-2 tracking-tight">Estratégia Exclusiva</h3>
+                                <p class="text-[11px] text-zinc-500 uppercase tracking-widest mb-8 leading-relaxed">Este treinamento de alto impacto está disponível apenas para membros ativos da Elite.</p>
+                                
+                                <a href="<?php echo home_url('/adquirir-acesso'); ?>" class="group relative px-10 py-4 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
+                                    <span class="relative z-10">Desbloquear Minha Jornada</span>
+                                    <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                </a>
+                                <p class="mt-4 text-[8px] text-zinc-600 uppercase tracking-widest italic">Acesso vitalício após a confirmação do pagamento</p>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -175,19 +212,26 @@ $is_watched = in_array($lesson_id, $completed);
                          </p>
                     </div>
                     
-                    <button id="elite-complete-btn" 
-                            data-post-id="<?php echo $lesson_id; ?>"
-                            class="group relative overflow-hidden bg-zinc-800 hover:bg-gold-500 text-gold-500 hover:text-black border border-gold-500/30 hover:border-gold-500 px-10 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-gold-500/20 <?php echo $is_watched ? 'border-gold-500 bg-gold-500/10' : ''; ?>">
-                        <span class="relative z-10 flex items-center gap-3">
-                            <?php if ($is_watched): ?>
-                                <span class="dashicons dashicons-yes-alt text-gold-500 group-hover:text-black"></span> 
-                                <span class="group-hover:hidden">Aula Concluída</span>
-                                <span class="hidden group-hover:block">Desmarcar Aula</span>
-                            <?php else: ?>
-                                <span class="dashicons dashicons-awards"></span> Marcar como Finalizada
-                            <?php endif; ?>
-                        </span>
-                    </button>
+                    <?php if($has_access): ?>
+                        <button id="elite-complete-btn" 
+                                data-post-id="<?php echo $lesson_id; ?>"
+                                class="group relative overflow-hidden bg-zinc-800 hover:bg-gold-500 text-gold-500 hover:text-black border border-gold-500/30 hover:border-gold-500 px-10 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-gold-500/20 <?php echo $is_watched ? 'border-gold-500 bg-gold-500/10' : ''; ?>">
+                            <span class="relative z-10 flex items-center gap-3">
+                                <?php if ($is_watched): ?>
+                                    <svg class="w-5 h-5 text-gold-500 group-hover:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span class="group-hover:hidden">Aula Concluída</span>
+                                    <span class="hidden group-hover:block">Desmarcar Aula</span>
+                                <?php else: ?>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Marcar como Finalizada
+                                <?php endif; ?>
+                            </span>
+                        </button>
+                    <?php else: ?>
+                        <div class="flex items-center gap-2 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-zinc-500 opacity-50 grayscale select-none">
+                           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                           <span class="text-[9px] font-bold uppercase tracking-widest">Botão de Progresso Bloqueado</span>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Description Area -->
@@ -198,31 +242,105 @@ $is_watched = in_array($lesson_id, $completed);
                     </div>
                 </div>
 
+                <!-- Supporting Materials (PDF, E-books, etc) -->
+                <?php if ( ! empty( $supporting_files ) ) : ?>
+                    <div class="mt-12 bg-zinc-900/40 p-10 rounded-3xl border border-white/5 backdrop-blur-sm">
+                        <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                            <h4 class="text-gold-500 font-serif italic text-lg flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Materiais Complementares
+                            </h4>
+                            <?php if ( ! $has_access ) : ?>
+                                <span class="text-[8px] bg-red-500 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest animate-pulse">Acesso Bloqueado</span>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <?php foreach ( $supporting_files as $file ) : 
+                                $file_ext = pathinfo( get_attached_file( $file['id'] ), PATHINFO_EXTENSION );
+                                $is_pdf = ( strtolower( $file_ext ) === 'pdf' );
+                                ?>
+                                <div class="group p-5 bg-black/40 rounded-2xl border border-white/5 hover:border-gold-500/20 transition-all flex items-center justify-between relative overflow-hidden">
+                                    <div class="flex items-center gap-4 relative z-10">
+                                        <div class="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-zinc-500 group-hover:text-gold-500 transition-colors border border-white/5">
+                                            <?php if ( ! $has_access ) : ?>
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                            <?php else : ?>
+                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <h5 class="text-[11px] font-bold text-white uppercase tracking-wider line-clamp-1"><?php echo esc_html( $file['name'] ); ?></h5>
+                                            <p class="text-[8px] text-zinc-600 uppercase tracking-widest mt-1">
+                                                <?php echo strtoupper( $file_ext ); ?> • MATERIAL EXCLUSIVO
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <?php if ( $has_access ) : ?>
+                                        <a href="<?php echo home_url( '/?lms_download=' . $file['id'] ); ?>" class="relative z-10 w-10 h-10 rounded-full bg-gold-500 text-black flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-gold-500/20">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        </a>
+                                    <?php else : ?>
+                                        <div class="relative z-10 w-10 h-10 rounded-full bg-zinc-800 text-zinc-600 flex items-center justify-center opacity-50 cursor-not-allowed">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Decorative subtle background -->
+                                    <div class="absolute inset-0 bg-gradient-to-r from-gold-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if ( ! $has_access ) : ?>
+                            <div class="mt-8 p-6 bg-gold-500/5 border border-gold-500/10 rounded-2xl text-center">
+                                <p class="text-[9px] text-gold-500/80 uppercase tracking-[0.2em] font-medium mb-4">Atualize seu acesso para baixar as ferramentas e apostilas desta estratégia.</p>
+                                <a href="<?php echo home_url( '/adquirir-acesso' ); ?>" class="text-[8px] text-black bg-gold-500 font-black uppercase tracking-[0.3em] px-6 py-2 rounded-lg hover:bg-gold-400 transition-all">Liberar Downloads Agora</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+
                 <!-- Elite Chat / Comments Section -->
                 <div id="elite-chat-section" class="mt-12 bg-zinc-900/40 p-10 rounded-3xl border border-white/5 backdrop-blur-sm">
                     <h4 class="text-gold-500 font-serif italic text-lg mb-8 flex items-center gap-3">
-                        <span class="dashicons dashicons-admin-comments"></span>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         Comunidade de Elite
                     </h4>
                     
                     <!-- Comment Form Container -->
                     <?php if (comments_open()): ?>
-                        <div id="elite-comment-form-container" class="mb-12 p-6 bg-black/40 rounded-2xl border border-white/5 relative">
-                            <form id="elite-ajax-comment-form" method="post">
-                                <textarea id="elite-comment-field" name="comment" required class="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-gold-500/50 outline-none min-h-[120px]" placeholder="Compartilhe seu insight com a comunidade..."></textarea>
-                                <div class="flex justify-end mt-4">
-                                    <button type="submit" class="bg-gold-500 hover:bg-gold-400 text-black px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2">
-                                        <span class="send-text">Enviar Comentário Elite</span>
-                                        <span class="dashicons dashicons-arrow-right-alt2"></span>
-                                    </button>
+                        <?php if ($has_access): ?>
+                            <div id="elite-comment-form-container" class="mb-12 p-6 bg-black/40 rounded-2xl border border-white/5 relative">
+                                <form id="elite-ajax-comment-form" method="post">
+                                    <textarea id="elite-comment-field" name="comment" required class="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-gold-500/50 outline-none min-h-[120px]" placeholder="Compartilhe seu insight com a comunidade..."></textarea>
+                                    <div class="flex justify-end mt-4">
+                                        <button type="submit" class="bg-gold-500 hover:bg-gold-400 text-black px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2">
+                                            <span class="send-text">Enviar Comentário Elite</span>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="post_id" value="<?php echo $lesson_id; ?>">
+                                    <input type="hidden" name="action" value="lms_elite_comment_submit">
+                                </form>
+                                <div id="comment-status" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center rounded-2xl z-10">
+                                    <span class="text-gold-500 font-bold uppercase tracking-widest text-[10px]">Processando Insight...</span>
                                 </div>
-                                <input type="hidden" name="post_id" value="<?php echo $lesson_id; ?>">
-                                <input type="hidden" name="action" value="lms_elite_comment_submit">
-                            </form>
-                            <div id="comment-status" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center rounded-2xl z-10">
-                                <span class="text-gold-500 font-bold uppercase tracking-widest text-[10px]">Processando Insight...</span>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <!-- Locked Comment Feedback -->
+                            <div class="mb-12 p-10 bg-black/40 rounded-[32px] border border-gold-500/10 text-center relative overflow-hidden group">
+                                <div class="absolute inset-0 bg-gradient-to-r from-gold-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <svg class="w-10 h-10 text-gold-500/50 mx-auto mb-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                <h5 class="text-white font-serif italic text-lg mb-2">Comunidade Privada</h5>
+                                <p class="text-[10px] text-zinc-500 uppercase tracking-[0.2em] max-w-xs mx-auto mb-6">Apenas alunos ativos podem interagir e ganhar autoridade no chat da Elite.</p>
+                                <div class="w-full py-4 bg-zinc-900/40 border border-white/5 rounded-2xl text-[9px] text-gold-500/60 font-bold uppercase tracking-widest select-none">
+                                    Modo de Observador Ativado
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Comments List -->
@@ -244,7 +362,7 @@ $is_watched = in_array($lesson_id, $completed);
                                                 <span class="text-[9px] text-zinc-500 uppercase tracking-widest"><?php echo get_comment_date('H:i - d/m', $comment); ?></span>
                                                 <?php if ( current_user_can( 'manage_options' ) ) : ?>
                                                     <button class="delete-elite-comment text-red-500/50 hover:text-red-500 transition-colors" data-comment-id="<?php echo $comment->comment_ID; ?>" title="Apagar Insight">
-                                                        <span class="dashicons dashicons-trash text-sm"></span>
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -279,7 +397,7 @@ $is_watched = in_array($lesson_id, $completed);
                 </div>
                 <!-- Close Button (Mobile Only) -->
                 <button onclick="toggleSyllabus()" class="lg:hidden text-zinc-500 hover:text-gold-500">
-                    <span class="dashicons dashicons-no-alt"></span>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             
@@ -300,7 +418,7 @@ $is_watched = in_array($lesson_id, $completed);
                         <!-- Module Header -->
                         <div class="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gold-500 bg-zinc-900/40 rounded-t-xl border-b border-white/5 mx-2 flex justify-between items-center cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
                             <span class="truncate"><?php echo esc_html($module->post_title); ?></span>
-                            <span class="dashicons dashicons-arrow-down-alt2 text-zinc-500" style="font-size: 14px; width: 14px; height: 14px;"></span>
+                            <svg class="w-3 h-3 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                         
                         <!-- Module Lessons -->
@@ -312,8 +430,10 @@ $is_watched = in_array($lesson_id, $completed);
                             <a href="<?php echo get_permalink($l->ID); ?>" class="group block p-3 rounded-xl transition-all <?php echo $is_active ? 'bg-gold-500/10 border border-gold-500/20' : 'hover:bg-white/5'; ?>">
                                 <div class="flex items-center gap-3">
                                     <div class="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold border transition-all <?php echo $is_active ? 'bg-gold-500 border-gold-500 text-black shadow-lg shadow-gold-500/20' : ($is_done ? 'bg-gold-500/20 border-gold-500/20 text-gold-500' : 'bg-black border-white/10 text-zinc-600 group-hover:border-gold-500/30 group-hover:text-gold-400'); ?>">
-                                        <?php if($is_done && !$is_active): ?>
-                                            <span class="dashicons dashicons-yes-alt text-[12px] h-3 w-3 leading-3"></span>
+                                        <?php if(!$has_access): ?>
+                                            <svg class="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        <?php elseif($is_done && !$is_active): ?>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         <?php else: ?>
                                             <?php echo str_pad($lesson_number++, 2, '0', STR_PAD_LEFT); ?>
                                         <?php endif; ?>
@@ -347,8 +467,10 @@ $is_watched = in_array($lesson_id, $completed);
                             <a href="<?php echo get_permalink($l->ID); ?>" class="group block p-3 rounded-xl transition-all <?php echo $is_active ? 'bg-gold-500/10 border border-gold-500/20' : 'hover:bg-white/5'; ?>">
                                 <div class="flex items-center gap-3">
                                     <div class="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold border transition-all <?php echo $is_active ? 'bg-gold-500 border-gold-500 text-black shadow-lg shadow-gold-500/20' : ($is_done ? 'bg-gold-500/20 border-gold-500/20 text-gold-500' : 'bg-black border-white/10 text-zinc-600 group-hover:border-gold-500/30 group-hover:text-gold-400'); ?>">
-                                        <?php if($is_done && !$is_active): ?>
-                                            <span class="dashicons dashicons-yes-alt text-[12px] h-3 w-3 leading-3"></span>
+                                        <?php if(!$has_access): ?>
+                                            <svg class="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        <?php elseif($is_done && !$is_active): ?>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         <?php else: ?>
                                             <?php echo str_pad($lesson_number++, 2, '0', STR_PAD_LEFT); ?>
                                         <?php endif; ?>
@@ -412,7 +534,7 @@ $is_watched = in_array($lesson_id, $completed);
                 lesson_id: postId
             }, function(response) {
                 if(response.success) {
-                    btn.html('<span class="relative z-10 flex items-center gap-3"><span class="dashicons dashicons-yes-alt"></span> Módulo Finalizado</span>');
+                    btn.html('<span class="relative z-10 flex items-center gap-3"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Módulo Finalizado</span>');
                     window.location.reload();
                 } else {
                     alert('Erro ao processar: ' + response.data);

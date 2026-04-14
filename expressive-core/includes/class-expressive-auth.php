@@ -13,7 +13,8 @@ class Expressive_Auth {
 	public function handle_login_failed( $username ) {
 		$referrer = wp_get_referer();
 
-		// If login from custom page, redirect back there with failed status
+		Expressive_Logger::warning( 'AUTH', "Tentativa de login falhada", array( 'username' => $username, 'referrer' => $referrer, 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown' ) );
+
 		if ( ! empty( $referrer ) && strpos( $referrer, 'wp-login' ) === false ) {
 			wp_safe_redirect( home_url( '/login/?login=failed' ) );
 			exit;
@@ -29,6 +30,7 @@ class Expressive_Auth {
 		}
 
 		if ( empty( $username ) || empty( $password ) ) {
+			Expressive_Logger::debug( 'AUTH', "Login com campos vazios", array( 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown' ) );
 			if ( strpos( wp_get_referer(), 'wp-login' ) === false ) {
 				wp_safe_redirect( home_url( '/login/?login=failed' ) );
 				exit;

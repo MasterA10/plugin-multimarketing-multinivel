@@ -263,10 +263,12 @@ $total_lessons_platform = wp_count_posts('lms_lesson')->publish;
                                 <span class="text-[9px] text-zinc-500 uppercase tracking-widest">Autoridades</span>
                                 <div class="text-2xl font-bold mt-1"><?php echo $ref_count; ?></div>
                             </div>
+                             <?php if ( get_option('lms_show_commissions', 'yes') === 'yes' ) : ?>
                              <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center">
                                 <span class="text-[9px] text-zinc-500 uppercase tracking-widest">Bonus/Ref</span>
                                 <div class="text-2xl font-bold mt-1" style="color: <?php echo $ranks[$current_level]['color']; ?>">R$ <?php echo 100 + ($current_level * 50); ?></div>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

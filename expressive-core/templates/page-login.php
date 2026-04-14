@@ -76,11 +76,16 @@
                         <input type="password" name="pwd" id="user_pass" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white transition-all" placeholder="••••••••">
                     </div>
 
-                    <div class="pt-4">
+                    <div class="pt-4 flex flex-col gap-4">
                         <input type="hidden" name="redirect_to" value="<?php echo site_url( '/area-de-membros/' ); ?>">
                         <button type="submit" name="wp-submit" id="wp-submit" class="w-full bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-black font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]">
                             ACESSAR AGORA
                         </button>
+
+                        <!-- Visitor Button -->
+                        <a href="<?php echo site_url( '/area-de-membros/' ); ?>" class="w-full bg-white/5 border border-white/10 hover:border-gold-500/30 text-zinc-400 hover:text-gold-500 py-4 rounded-xl text-center text-[10px] font-bold uppercase tracking-[0.2em] transition-all">
+                            Explorar como Visitante
+                        </a>
                     </div>
                 </div>
             </form>
@@ -88,7 +93,7 @@
 
         <!-- Footer Info -->
         <p class="text-center mt-8 text-gray-500 text-sm">
-            Não é um membro ainda? <a href="#" class="text-gold-400 font-medium hover:underline">Adquirir meu acesso</a>
+            Não é um membro ainda? <a href="<?php echo home_url('/adquirir-acesso/'); ?>" class="text-gold-400 font-medium hover:underline">Adquirir meu acesso</a>
         </p>
     </div>
 

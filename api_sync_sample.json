@@ -1,0 +1,27 @@
+{
+    "description": "Exemplo de Resposta para os Endpoints de Sincronização Elite LMS",
+    "last_sync": "2026-04-04T19:30:00-03:00",
+    "endpoints": {
+        "get_active_list": {
+            "success": true,
+            "message": "Lista de usuários ativos gerada com sucesso via action: get_active_list",
+            "data": [
+                "alex.alves@exemplo.com.br",
+                "suporte@elitetech.com",
+                "admin@dashboard.local",
+                "membro.ativo@provedor.com"
+            ]
+        },
+        "get_user_status": {
+            "success": true,
+            "message": "Status individual recuperado via action: get_user_status",
+            "data": {
+                "email": "alex.alves@exemplo.com.br",
+                "is_active": true,
+                "expiry_date": "2026-10-15",
+                "plan_name": "Elite VIP Plus",
+                "gateway_reference": "SUB_123456789"
+            }
+        }
+    }
+}

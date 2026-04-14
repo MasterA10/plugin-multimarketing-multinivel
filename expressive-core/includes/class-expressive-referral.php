@@ -2,6 +2,43 @@
 
 class Expressive_Referral {
 
+	/**
+	 * Define se um usuário é Educador com base nas permissões e meta definidos no cadastro/faturamento.
+	 */
+	public static function is_educator( $user_id ) {
+		$user = get_userdata( $user_id );
+		if ( ! $user ) return false;
+
+		if ( get_user_meta( $user_id, '_lms_is_educator', true ) === 'yes' ) return true;
+		if ( in_array( 'educadora', (array) $user->roles ) ) return true;
+		if ( in_array( 'administrator', (array) $user->roles ) ) return true;
+
+		return false;
+	}
+
+	/**
+	 * Define se um usuário é Autoridade.
+	 */
+	public static function is_authority( $user_id ) {
+		$user = get_userdata( $user_id );
+		if ( ! $user ) return false;
+		if ( in_array( 'autoridade', (array) $user->roles ) ) return true;
+		return false;
+	}
+
+	/**
+	 * Retorna true se a assinatura está ativa, false caso contrário (bloqueia o acesso).
+	 */
+	public static function has_active_subscription( $user_id ) {
+		$status = get_user_meta( $user_id, '_lms_subscription_status', true );
+		// Por padrão, se não tiver a flag de suspensão, o acesso está liberado.
+		if ( $status === 'suspended' ) {
+			return false;
+		}
+		
+		return true;
+	}
+
 	public function register_hooks() {
 		// 1. Capture and save cookie to order (Classic & Block Support)
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_referral_to_order' ), 10, 2 );
@@ -35,6 +72,7 @@ class Expressive_Referral {
 		if ( isset( $_COOKIE['exp_ref'] ) ) {
 			$referral_code = sanitize_text_field( $_COOKIE['exp_ref'] );
 			$order->update_meta_data( '_exp_referred_by', $referral_code );
+			Expressive_Logger::info( 'REFERRAL', "Cookie vinculado ao pedido (create_order)", array( 'ref_code' => $referral_code, 'order_id' => $order->get_id() ) );
 		}
 	}
 
@@ -78,6 +116,7 @@ class Expressive_Referral {
 		}
 
 		if ( ! $referral_code ) {
+			Expressive_Logger::debug( 'REFERRAL', "Pedido sem código de indicação", array( 'order_id' => $order_id ) );
 			return ;
 		}
 
@@ -85,6 +124,7 @@ class Expressive_Referral {
 		$educator = $this->find_educator_by_code( $referral_code );
 		
 		if ( ! $educator ) {
+			Expressive_Logger::warning( 'REFERRAL', "Educador não encontrado para o código", array( 'order_id' => $order_id, 'ref_code' => $referral_code ) );
 			return;
 		}
 
@@ -106,11 +146,32 @@ class Expressive_Referral {
 		}
 
 		if ( ! $has_eligible_product ) {
-			return; // Nenhum produto qualificável neste pedido
+			Expressive_Logger::info( 'REFERRAL', "Pedido ignorado: nenhum produto elegível", array( 'order_id' => $order_id, 'ref_code' => $referral_code ) );
+			return;
 		}
 		// -----------------------------------------------
 
-		$this->register_referral_link( $educator->ID, $authority_id, $order_id, $order->get_total() );
+		$order_total = $order->get_total();
+		$commission_percentage = get_option( 'lms_commission_percentage', 10 );
+		$commission = $order_total * ( $commission_percentage / 100 );
+		$referred_role = $this->is_educator( $authority_id ) ? 'educadora' : 'autoridade';
+
+		$this->register_referral_link( $educator->ID, $authority_id, $order_id, $order_total, $commission, $referred_role );
+
+		Expressive_Logger::info( 'REFERRAL', "Indicação processada com sucesso", array(
+			'order_id'     => $order_id,
+			'educator_id'  => $educator->ID,
+			'authority_id' => $authority_id,
+			'order_total'  => $order_total,
+			'commission'   => $commission,
+			'role'         => $referred_role
+		) );
+
+		// Clear referral cookie after successful conversion
+		if ( isset( $_COOKIE['exp_ref'] ) ) {
+			setcookie( 'exp_ref', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN );
+			Expressive_Logger::info( 'REFERRAL', "Cookie exp_ref removido após conversão", array( 'order_id' => $order_id ) );
+		}
 	}
 
 	/**
@@ -118,11 +179,18 @@ class Expressive_Referral {
 	 * Por padrão, aceita todos os produtos (true).
 	 */
 	private function is_product_eligible_for_referral( $product_id ) {
-		// Implementação futura:
-		// $eligible_ids = array( 123, 456 ); // Lista de IDs de cursos qualificáveis
-		// return in_array( $product_id, $eligible_ids );
+		$all_eligible = get_option( 'lms_all_products_eligible', 'yes' );
+		if ( $all_eligible === 'yes' ) {
+			return true;
+		}
 
-		return true; // Por enquanto, validar qualquer compra
+		$eligible_ids_raw = get_option( 'lms_eligible_products', '' );
+		if ( empty( $eligible_ids_raw ) ) {
+			return false; // Se não tem IDs e não é "todos", nenhum é elegível
+		}
+
+		$eligible_ids = array_map( 'intval', explode( ',', $eligible_ids_raw ) );
+		return in_array( (int) $product_id, $eligible_ids );
 	}
 
 	private function find_educator_by_code( $code ) {
@@ -142,7 +210,7 @@ class Expressive_Referral {
 		return $user;
 	}
 
-	public function register_referral_link( $educator_id, $authority_id, $order_id = 0, $order_total = 0 ) {
+	public function register_referral_link( $educator_id, $authority_id, $order_id = 0, $order_total = 0, $commission = 0, $role = '' ) {
 		global $wpdb;
 		$table_referrals = $wpdb->prefix . 'lms_referrals';
 
@@ -156,12 +224,14 @@ class Expressive_Referral {
 			$wpdb->insert(
 				$table_referrals,
 				array(
-					'educator_id'  => $educator_id,
-					'authority_id' => $authority_id,
-					'order_id'     => $order_id,
-					'order_total'  => $order_total,
+					'educator_id'       => $educator_id,
+					'authority_id'      => $authority_id,
+					'order_id'          => $order_id,
+					'order_total'       => $order_total,
+					'commission_amount' => $commission,
+					'referred_role'     => $role,
 				),
-				array( '%d', '%d', '%d', '%f' )
+				array( '%d', '%d', '%d', '%f', '%f', '%s' )
 			);
 
 			// Trigger Gamification Engine update
@@ -181,12 +251,12 @@ class Expressive_Referral {
 		$educator = $this->find_educator_by_code( $ref_code );
 
 		if ( $educator ) {
-			// Set cookie for 30 days
 			setcookie( 'exp_ref', $ref_code, time() + ( 30 * DAY_IN_SECONDS ), COOKIEPATH, COOKIE_DOMAIN );
+			Expressive_Logger::info( 'REFERRAL', "Cookie de indicação definido", array( 'ref_code' => $ref_code, 'educator_id' => $educator->ID ) );
 
-			// Se o usuário já estiver logado (ex: clicou no link após logar), grava direto no perfil
 			if ( is_user_logged_in() ) {
 				update_user_meta( get_current_user_id(), '_exp_referred_by', $ref_code );
+				Expressive_Logger::info( 'REFERRAL', "Vinculado ao perfil do usuário logado", array( 'user_id' => get_current_user_id(), 'ref_code' => $ref_code ) );
 			}
 		}
 	}
@@ -246,21 +316,28 @@ class Expressive_Referral {
 		}
 
 		foreach ( $educators as $educator_id ) {
-			$count = $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM $table_referrals WHERE educator_id = %d AND YEAR(created_at) = %d",
+			$row = $wpdb->get_row( $wpdb->prepare(
+				"SELECT COUNT(*) as count, SUM(order_total) as total_sales, SUM(commission_amount) as total_commissions 
+				 FROM $table_referrals 
+				 WHERE educator_id = %d AND YEAR(created_at) = %d",
 				$educator_id, $current_year
 			) );
 
 			$results[] = (object) array(
-				'educator_id' => $educator_id,
-				'ref_count'   => (int) $count
+				'educator_id'       => $educator_id,
+				'ref_count'         => (int) $row->count,
+				'total_sales'       => (float) $row->total_sales,
+				'total_commissions' => (float) $row->total_commissions
 			);
 		}
 
-		// Ordena do maior pro menor
-		usort( $results, function( $a, $b ) {
-			return $b->ref_count - $a->ref_count;
-		});
+		// Sort by ref_count DESC
+		usort( $results, function ( $a, $b ) {
+			if ( $a->ref_count == $b->ref_count ) {
+				return $b->total_sales <=> $a->total_sales;
+			}
+			return $b->ref_count <=> $a->ref_count;
+		} );
 
 		return array_slice( $results, 0, $limit );
 	}

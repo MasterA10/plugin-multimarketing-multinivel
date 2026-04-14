@@ -18,6 +18,8 @@ class Expressive_Certificate {
 		$completed_count = $this->get_completed_lessons_count( $user_id, $course_id );
 		$percentage = ( $completed_count / $total_lessons ) * 100;
 
+		Expressive_Logger::debug( 'CERT', "Verificação de elegibilidade", array( 'user_id' => $user_id, 'course_id' => $course_id, 'completed' => $completed_count, 'total' => $total_lessons, 'pct' => round($percentage) . '%' ) );
+
 		return ( $percentage >= 75 );
 	}
 
@@ -87,6 +89,8 @@ class Expressive_Certificate {
 		$course_title = get_the_title( $course_id );
 		$date = date( 'd/m/Y' );
 
+		Expressive_Logger::info( 'CERT', "Certificado de curso gerado", array( 'user_id' => $user_id, 'course_id' => $course_id, 'course' => $course_title ) );
+
 		// Display Luxury HTML
 		include EXPRESSIVE_CORE_PATH . 'templates/page-certificate-luxury.php';
 		exit;
@@ -115,6 +119,8 @@ class Expressive_Certificate {
 
 		$course_title = "FORMAÇÃO ELITE SPECIALIST";
 		$date = date( 'd/m/Y' );
+
+		Expressive_Logger::info( 'CERT', "Certificado global de Elite gerado", array( 'user_id' => $user_id, 'progress' => $pct . '%' ) );
 
 		// Display Luxury HTML
 		include EXPRESSIVE_CORE_PATH . 'templates/page-certificate-luxury.php';

@@ -61,7 +61,12 @@ $live_date = get_post_meta( $live_id, '_lms_live_date', true );
 $live_time = get_post_meta( $live_id, '_lms_live_time', true );
 
 $is_external = (strpos($video_input, 'http') !== false);
+
+// Access Check
+$access_checker = new Expressive_Access();
+$has_access = $access_checker->has_active_subscription(get_current_user_id());
 ?>
+
 
 
 <div class="bg-black text-white min-h-screen flex flex-col font-sans">
@@ -97,33 +102,61 @@ $is_external = (strpos($video_input, 'http') !== false);
         
         <!-- Theatre Mode Video Area -->
         <div class="w-full aspect-video bg-black rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
-            <?php if($video_input): ?>
-                <?php if($is_external): ?>
-                    <!-- External Meeting Link (Zoom/Meet/etc) -->
-                    <div class="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/40 p-10 text-center">
-                        <div class="w-24 h-24 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 mb-8 shadow-2xl shadow-gold-500/10">
-                            <span class="dashicons dashicons-video-alt3" style="font-size: 40px; width: 40px; height: 40px;"></span>
+            <?php if($has_access): ?>
+                <?php if($video_input): ?>
+                    <?php if($is_external): ?>
+                        <!-- External Meeting Link (Zoom/Meet/etc) -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/40 p-10 text-center">
+                            <div class="w-24 h-24 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 mb-8 shadow-2xl shadow-gold-500/10">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <h2 class="text-3xl font-serif italic text-gold-500 mb-4">Sala de Mentoria Externa</h2>
+                            <p class="text-zinc-400 max-w-md mx-auto mb-10 text-sm leading-relaxed">Esta mentoria está sendo realizada via plataforma externa de alto desempenho. Clique no botão abaixo para acessar o treinamento.</p>
+                            
+                            <a href="<?php echo esc_url($video_input); ?>" target="_blank" class="bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-black px-12 py-5 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold-500/20 hover:scale-105 active:scale-95">
+                                Entrar na Mentoria Agora
+                            </a>
                         </div>
-                        <h2 class="text-3xl font-serif italic text-gold-500 mb-4">Sala de Mentoria Externa</h2>
-                        <p class="text-zinc-400 max-w-md mx-auto mb-10 text-sm leading-relaxed">Esta mentoria está sendo realizada via plataforma externa de alto desempenho. Clique no botão abaixo para acessar o treinamento.</p>
-                        
-                        <a href="<?php echo esc_url($video_input); ?>" target="_blank" class="bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-black px-12 py-5 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-xl shadow-gold-500/20 hover:scale-105 active:scale-95">
-                            Entrar na Mentoria Agora
-                        </a>
-                    </div>
+                    <?php else: ?>
+                        <!-- YouTube Native Player Skin -->
+                        <div class="absolute inset-0 scale-[1.04] pointer-events-none">
+                            <iframe width="100%" height="100%" src="https://www.youtube.com/embed/<?php echo esc_attr($video_input); ?>?rel=0&modestbranding=1&showinfo=0&autoplay=1&controls=1&iv_load_policy=3" 
+                                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+                                    class="w-full h-full pointer-events-auto shadow-2xl"></iframe>
+                        </div>
+                    <?php endif; ?>
                 <?php else: ?>
-                    <!-- YouTube Native Player Skin -->
-                    <div class="absolute inset-0 scale-[1.04] pointer-events-none">
-                        <iframe width="100%" height="100%" src="https://www.youtube.com/embed/<?php echo esc_attr($video_input); ?>?rel=0&modestbranding=1&showinfo=0&autoplay=1&controls=1&iv_load_policy=3" 
-                                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
-                                class="w-full h-full pointer-events-auto shadow-2xl"></iframe>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 bg-zinc-900/40">
+                        <svg class="w-12 h-12 opacity-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        <p class="font-bold uppercase tracking-[0.2em] text-xs">Aguardando início da transmissão de elite...</p>
+                        <p class="text-[10px] text-zinc-500 mt-2 font-serif italic">O mestre entrará em instantes.</p>
                     </div>
                 <?php endif; ?>
             <?php else: ?>
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 bg-zinc-900/40">
-                    <span class="dashicons dashicons-video-alt3 text-6xl opacity-20 mb-4"></span>
-                    <p class="font-bold uppercase tracking-[0.2em] text-xs">Aguardando início da transmissão de elite...</p>
-                    <p class="text-[10px] text-zinc-500 mt-2 font-serif italic">O mestre entrará em instantes.</p>
+                <!-- ELITE LOCKED LIVE UI -->
+                <div class="absolute inset-0 bg-[#070707] flex flex-col items-center justify-center p-8 text-center overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent opacity-30"></div>
+                    <div class="absolute w-96 h-96 bg-gold-500/5 rounded-full blur-[100px] -bottom-20 -left-20"></div>
+
+                    <div class="relative z-10 flex flex-col items-center max-w-md">
+                        <div class="mb-6 relative">
+                            <div class="w-16 h-16 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 shadow-2xl shadow-gold-500/10">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-4 border-black animate-pulse"></div>
+                        </div>
+                        
+                        <h3 class="text-2xl font-serif italic text-white mb-2 tracking-tight">Mentoria em Andamento</h3>
+                        <p class="text-[11px] text-zinc-500 uppercase tracking-widest mb-8 leading-relaxed font-medium">Esta sala de mentoria é exclusiva para alunos com assinatura ativa. O sinal de transmissão está bloqueado para seu perfil.</p>
+                        
+                        <a href="<?php echo home_url('/adquirir-acesso'); ?>" class="group relative px-10 py-5 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
+                            <span class="relative z-10">Garantir Meu Acesso Agora</span>
+                            <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                        </a>
+                        <div class="mt-6 flex items-center gap-2 text-[8px] text-red-500 uppercase tracking-widest font-black">
+                            <span class="w-1 h-1 bg-red-500 rounded-full animate-ping"></span> TRANSMISSÃO BLOQUEADA
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -141,28 +174,41 @@ $is_external = (strpos($video_input, 'http') !== false);
                 <!-- Elite Chat / Comments Section -->
                 <div id="elite-chat-section" class="mt-4 bg-zinc-900/40 p-10 rounded-3xl border border-white/5 backdrop-blur-sm">
                     <h4 class="text-gold-500 font-serif italic text-lg mb-8 flex items-center gap-3">
-                        <span class="dashicons dashicons-admin-comments"></span>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                         Comunidade de Elite
                     </h4>
                     
                     <!-- Comment Form Container -->
                     <?php if (comments_open()): ?>
-                        <div id="elite-comment-form-container" class="mb-12 p-6 bg-black/40 rounded-2xl border border-white/5 relative">
-                            <form id="elite-ajax-comment-form" method="post">
-                                <textarea id="elite-comment-field" name="comment" required class="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-gold-500/50 outline-none min-h-[120px]" placeholder="Compartilhe seu insight com a comunidade..."></textarea>
-                                <div class="flex justify-end mt-4">
-                                    <button type="submit" class="bg-gold-500 hover:bg-gold-400 text-black px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2">
-                                        <span class="send-text">Enviar Comentário Elite</span>
-                                        <span class="dashicons dashicons-arrow-right-alt2"></span>
-                                    </button>
+                        <?php if ($has_access): ?>
+                            <div id="elite-comment-form-container" class="mb-12 p-6 bg-black/40 rounded-2xl border border-white/5 relative">
+                                <form id="elite-ajax-comment-form" method="post">
+                                    <textarea id="elite-comment-field" name="comment" required class="w-full bg-zinc-900 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-gold-500/50 outline-none min-h-[120px]" placeholder="Compartilhe seu insight com a comunidade..."></textarea>
+                                    <div class="flex justify-end mt-4">
+                                        <button type="submit" class="bg-gold-500 hover:bg-gold-400 text-black px-8 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2">
+                                            <span class="send-text">Enviar Comentário Elite</span>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="post_id" value="<?php echo $live_id; ?>">
+                                    <input type="hidden" name="action" value="lms_elite_comment_submit">
+                                </form>
+                                <div id="comment-status" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center rounded-2xl z-10">
+                                    <span class="text-gold-500 font-bold uppercase tracking-widest text-[10px]">Transmitindo Insight...</span>
                                 </div>
-                                <input type="hidden" name="post_id" value="<?php echo $live_id; ?>">
-                                <input type="hidden" name="action" value="lms_elite_comment_submit">
-                            </form>
-                            <div id="comment-status" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center rounded-2xl z-10">
-                                <span class="text-gold-500 font-bold uppercase tracking-widest text-[10px]">Transmitindo Insight...</span>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <!-- Locked Comment Feedback -->
+                            <div class="mb-12 p-10 bg-black/40 rounded-[32px] border border-gold-500/10 text-center relative overflow-hidden group">
+                                <div class="absolute inset-0 bg-gradient-to-r from-gold-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <svg class="w-10 h-10 text-gold-500/50 mx-auto mb-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                <h5 class="text-white font-serif italic text-lg mb-2">Insight Bloqueado</h5>
+                                <p class="text-[10px] text-zinc-500 uppercase tracking-[0.2em] max-w-xs mx-auto mb-6">A participação ativa em mentorias é exclusiva para alunos. Ative seu acesso para enviar insights agora.</p>
+                                <div class="w-full py-4 bg-zinc-900/40 border border-white/10 rounded-2xl text-[9px] text-gold-500/60 font-bold uppercase tracking-widest select-none">
+                                    Acesso Somente Leitura Ativado
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Comments List -->
@@ -202,7 +248,7 @@ $is_external = (strpos($video_input, 'http') !== false);
                 <!-- Elite Status Card -->
                 <div class="bg-zinc-900/40 p-8 rounded-3xl border border-white/5 flex flex-col items-center text-center">
                     <div class="w-16 h-16 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-500 mb-4">
-                        <span class="dashicons dashicons-megaphone"></span>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                     </div>
                     <h4 class="text-sm font-bold uppercase tracking-widest text-white mb-2">Sala de Mentoria</h4>
                     <p class="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest mb-4">Acesso Exclusivo</p>

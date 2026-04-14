@@ -50,6 +50,45 @@ class Expressive_Admin_Settings {
 			'elite-settings',
 			array( $this, 'render_admin_hub' )
 		);
+		
+		add_submenu_page(
+			'expressive-lms',
+			'Gerenciador de API',
+			'Elite API Manager',
+			'manage_options',
+			'elite-api',
+			array( $this, 'render_admin_hub' )
+		);
+
+		// 3. Conditional Commission Dashboard
+		if ( get_option( 'lms_show_commissions', 'yes' ) === 'yes' ) {
+			add_submenu_page(
+				'expressive-lms',
+				'Comissões Elite',
+				'💰 Comissões Elite',
+				'manage_options',
+				'elite-commissions',
+				array( $this, 'render_admin_hub' )
+			);
+		}
+
+		add_submenu_page(
+			'expressive-lms',
+			'Gestão de Benefícios',
+			'💎 Benefícios Elite',
+			'manage_options',
+			'elite-benefits',
+			array( $this, 'render_admin_hub' )
+		);
+
+		add_submenu_page(
+			'expressive-lms',
+			'Logs de Debug',
+			'📋 Logs de Debug',
+			'manage_options',
+			'elite-logs',
+			array( $this, 'render_admin_hub' )
+		);
 	}
 
 	public function render_admin_hub() {
@@ -77,6 +116,18 @@ class Expressive_Admin_Settings {
 					break;
 				case 'elite-settings':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-settings.php';
+					break;
+				case 'elite-api':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/api-management.php';
+					break;
+				case 'elite-commissions':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/commission-dashboard.php';
+					break;
+				case 'elite-benefits':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/benefits-management.php';
+					break;
+				case 'elite-logs':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/view-logs.php';
 					break;
 				default:
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/dashboard-admin.php';
@@ -165,6 +216,28 @@ class Expressive_Admin_Settings {
 		if ( isset( $_POST['lms_duration'] ) ) {
 			update_post_meta( $post_id, '_lms_duration', intval( $_POST['lms_duration'] ) );
 		}
+		
+		if ( isset( $_POST['lms_visibility_role'] ) ) {
+			update_post_meta( $post_id, '_lms_visibility_role', sanitize_text_field( $_POST['lms_visibility_role'] ) );
+		}
+
+		// Supporting Materials (Files)
+		if ( isset( $_POST['lms_files'] ) && is_array( $_POST['lms_files'] ) ) {
+			$files_data = array();
+			foreach ( $_POST['lms_files'] as $file ) {
+				$files_data[] = array(
+					'name' => sanitize_text_field( $file['name'] ),
+					'id'   => intval( $file['id'] )
+				);
+			}
+			update_post_meta( $post_id, '_lms_files_data', $files_data );
+		} else {
+			// If we are editing a lesson and no files came through, clear the meta
+			if ( $post_type === 'lms_lesson' ) {
+				delete_post_meta( $post_id, '_lms_files_data' );
+			}
+		}
+
 		if ( isset( $_POST['_thumbnail_id'] ) ) {
 			set_post_thumbnail( $post_id, intval( $_POST['_thumbnail_id'] ) );
 		}
@@ -208,7 +281,17 @@ class Expressive_Admin_Settings {
 			echo '<div class="updated"><p>Ciclo resetado com sucesso! Ranking Marco Zero inicializado.</p></div>';
 		}
 
+		if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycle_nonce' ) ) {
+			if ( isset( $_POST['cycle_date'] ) ) {
+				update_option( 'lms_cycle_end_date', sanitize_text_field( $_POST['cycle_date'] ) );
+			}
+			$show_commissions = isset( $_POST['lms_show_total_commissions'] ) ? 'yes' : 'no';
+			update_option( 'lms_show_total_commissions', $show_commissions );
+			echo '<div class="updated"><p>Configurações salvas com sucesso!</p></div>';
+		}
+
 		$current_end_date = get_option( 'lms_cycle_end_date', '2026-12-31' );
+		$show_commissions = get_option( 'lms_show_total_commissions', 'yes' );
 		?>
 		<div class="wrap">
 			<h1>Configurações do Ciclo Anual (Marco Zero)</h1>
@@ -220,6 +303,16 @@ class Expressive_Admin_Settings {
 					<tr>
 						<th scope="row"><label for="cycle_date">Data de Encerramento:</label></th>
 						<td><input name="cycle_date" type="date" id="cycle_date" value="<?php echo esc_attr( $current_end_date ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<th scope="row">Visibilidade do Dashboard:</th>
+						<td>
+							<label for="lms_show_total_commissions">
+								<input name="lms_show_total_commissions" type="checkbox" id="lms_show_total_commissions" value="yes" <?php checked( $show_commissions, 'yes' ); ?>>
+								Exibir "Comissões Totais" para Membros
+							</label>
+							<p class="description">Se desabilitado, o card de comissões totais será ocultado no dashboard do aluno.</p>
+						</td>
 					</tr>
 				</table>
 				<?php submit_button( 'Salvar Configurações', 'primary', 'lms_save_settings' ); ?>

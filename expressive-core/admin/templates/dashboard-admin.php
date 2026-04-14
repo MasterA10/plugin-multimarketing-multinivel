@@ -10,10 +10,84 @@ if ( ! current_user_can( 'manage_options' ) ) {
 
 // Data Logic for Admin
 global $wpdb;
-$total_educators = count(get_users(array('meta_key' => '_lms_is_educator', 'meta_value' => '1')));
+
+// Handle Form Submission for Manual Linking
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'manual_link_authority' ) {
+    $auth_id = intval($_POST['authority_id']);
+    $edu_id = intval($_POST['educator_id']);
+    
+    if ( $auth_id && $edu_id && $auth_id !== $edu_id ) {
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}lms_referrals WHERE authority_id = %d", $auth_id));
+        $edu_user = get_userdata($edu_id);
+        $referred_role = Expressive_Referral::is_educator($auth_id) ? 'educadora' : 'autoridade';
+        
+        if ( ! $exists ) {
+            $wpdb->insert(
+                "{$wpdb->prefix}lms_referrals",
+                array(
+                    'educator_id'       => $edu_id,
+                    'authority_id'      => $auth_id,
+                    'order_id'          => 0,
+                    'order_total'       => 0.00,
+                    'commission_amount' => 0.00,
+                    'referred_role'     => $referred_role
+                ),
+                array( '%d', '%d', '%d', '%f', '%f', '%s' )
+            );
+        } else {
+            $wpdb->update(
+                "{$wpdb->prefix}lms_referrals", 
+                array('educator_id' => $edu_id, 'referred_role' => $referred_role), 
+                array('authority_id' => $auth_id)
+            );
+        }
+        
+        update_user_meta( $auth_id, '_exp_referred_by', $edu_user->user_login );
+        
+        // Synchronize past orders if any
+        if ( function_exists('wc_get_orders') ) {
+            $orders = wc_get_orders( array('customer' => $auth_id, 'status' => array('wc-completed', 'wc-processing') ) );
+            foreach( $orders as $order ) {
+                $order->update_meta_data( '_exp_referred_by', $edu_user->user_login );
+                $order->save();
+            }
+        }
+        echo '<div style="background:#00a32a; color:#fff; padding:15px; text-align:center; font-weight:bold; border-radius:10px; margin-bottom: 20px;">Vínculo realizado com sucesso para '.$edu_user->user_login.'!</div>';
+    } elseif ( isset($_POST['authority_id']) && $_POST['authority_id'] === $_POST['educator_id'] ) {
+        echo '<div style="background:#d63638; color:#fff; padding:15px; text-align:center; font-weight:bold; border-radius:10px; margin-bottom: 20px;">Erro: Um usuário não pode indicar a si mesmo.</div>';
+    }
+}
+
+// Handle Referral Deletion
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_referral' ) {
+    $ref_id = intval($_POST['ref_id']);
+    $ref_info = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}lms_referrals WHERE id = %d", $ref_id));
+    if ($ref_info) {
+        $wpdb->delete("{$wpdb->prefix}lms_referrals", array('id' => $ref_id));
+        delete_user_meta($ref_info->authority_id, '_exp_referred_by');
+        echo '<div style="background:#d63638; color:#fff; padding:15px; text-align:center; font-weight:bold; border-radius:10px; margin-bottom: 20px;">Vínculo removido com sucesso.</div>';
+    }
+}
+
+// Contagem de Educadores (por cargo WordPress + meta do plugin)
+$edu_meta_query = array(
+    'relation' => 'OR',
+    array('key' => '_lms_is_educator', 'value' => 'yes', 'compare' => '='),
+    array('key' => '_lms_is_educator', 'value' => '1', 'compare' => '=')
+);
+$educators_by_meta = get_users(array('meta_query' => $edu_meta_query, 'fields' => 'ID'));
+$educators_by_role = get_users(array('role__in' => array('educadora', 'administrator'), 'fields' => 'ID'));
+$unique_educator_ids = array_unique(array_merge($educators_by_meta, $educators_by_role));
+$total_educators = count($unique_educator_ids);
+
+// Contagem de Autoridades (por cargo WordPress, independente de indicação)
+$total_authorities = count(get_users(array('role' => 'autoridade', 'fields' => 'ID')));
+
+// Indicações registradas na tabela (para o card separado)
+$total_referrals = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_referrals");
+
 $total_courses = wp_count_posts('lms_course')->publish;
 $total_lessons = wp_count_posts('lms_lesson')->publish;
-$total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_referrals");
 ?>
 
 <div class="elite-admin-wrap bg-[#111] text-white min-h-screen p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans">
@@ -35,16 +109,20 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
             <div class="text-gold-500 mb-2 opacity-50 group-hover:opacity-100 transition-all">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             </div>
-            <span class="text-[10px] text-gold-400/70 font-bold uppercase tracking-widest">Educadores Ativos</span>
-            <div class="text-3xl font-bold mt-1 text-white"><?php echo $total_educators; ?></div>
+            <span class="text-[10px] text-gold-400/70 font-bold uppercase tracking-widest">Membros da Comunidade</span>
+            <div class="text-2xl font-bold mt-1 text-white">
+                <?php echo $total_educators; ?> <span class="text-[10px] opacity-40 font-light uppercase">Educadoras</span> 
+                <span class="mx-1 opacity-20">|</span> 
+                <?php echo $total_authorities; ?> <span class="text-[10px] opacity-40 font-light uppercase">Autoridades</span>
+            </div>
         </div>
 
         <div class="bg-white/5 p-6 rounded-2xl border border-white/10 hover:border-gold-500/30 transition-all group">
             <div class="text-gold-500 mb-2 opacity-50 group-hover:opacity-100 transition-all">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             </div>
-            <span class="text-[10px] text-gold-400/70 font-bold uppercase tracking-widest">Autoridades Registradas</span>
-            <div class="text-3xl font-bold mt-1 text-white"><?php echo $total_authorities; ?></div>
+            <span class="text-[10px] text-gold-400/70 font-bold uppercase tracking-widest">Indicações Totais</span>
+            <div class="text-3xl font-bold mt-1 text-white"><?php echo $total_referrals; ?></div>
         </div>
 
         <div class="bg-white/5 p-6 rounded-2xl border border-white/10 hover:border-gold-500/30 transition-all group">
@@ -138,9 +216,44 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
             
             <div class="flex bg-black/40 p-1 rounded-xl border border-white/5" id="elite-tabs">
                 <button onclick="switchAdminTab('educadores')" class="admin-tab-btn active px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-gold-500/10 border border-gold-500/50 text-gold-500">Educadores</button>
-                <button onclick="switchAdminTab('autoridades')" class="admin-tab-btn px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-zinc-500">Autoridades</button>
+                <button onclick="switchAdminTab('autoridades')" class="admin-tab-btn px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-zinc-500">Rede de Indicações</button>
                 <button onclick="switchAdminTab('alunos')" class="admin-tab-btn px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-zinc-500">Alunos</button>
             </div>
+        </div>
+
+        <!-- Manual Binding Tool -->
+        <div class="mt-6 mb-8 bg-[#1a1a1a] p-6 rounded-2xl border border-gold-500/20">
+            <h4 class="text-lg font-serif italic text-gold-500 mb-4">Vincular Membro Manualmente</h4>
+            <form method="POST" class="flex flex-col md:flex-row gap-4 items-end">
+                <input type="hidden" name="action" value="manual_link_authority">
+                <div class="flex-1">
+                    <label class="block text-[10px] uppercase text-zinc-400 mb-1">1. Qual Membro?</label>
+                    <select name="authority_id" required class="w-full bg-black border border-white/10 rounded-lg text-white p-3 text-sm focus:border-gold-500 outline-none">
+                        <option value="">-- Selecione o Membro --</option>
+                        <?php 
+                        $all_users = get_users();
+                        foreach($all_users as $u) {
+                            echo '<option value="'.$u->ID.'">'.esc_html($u->display_name).' ('.$u->user_email.')</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-[10px] uppercase text-zinc-400 mb-1">2. Quem a indicou? (Educadora)</label>
+                    <select name="educator_id" required class="w-full bg-black border border-white/10 rounded-lg text-white p-3 text-sm focus:border-gold-500 outline-none">
+                        <option value="">-- Selecione a Educadora --</option>
+                        <?php 
+                        $educators_list = get_users(array(
+                            'role__in' => array('educadora', 'administrator')
+                        ));
+                        foreach($educators_list as $edu) {
+                            echo '<option value="'.$edu->ID.'">'.esc_html($edu->display_name).'</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                <button type="submit" class="px-8 py-3 bg-gold-500 text-black font-bold uppercase tracking-widest text-[10px] rounded-lg hover:bg-white transition-all shadow-lg" style="background-color: #D4AF37 !important; color: #000 !important;">Vincular e Sincronizar</button>
+            </form>
         </div>
 
         <!-- TAB: Educadores -->
@@ -150,16 +263,24 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
                     <thead>
                         <tr class="border-b border-white/10">
                             <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500">Educador</th>
+                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-center">Origem</th>
                             <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-center">Rank</th>
-                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-center">Autoridades</th>
+                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-center">Indicações</th>
                             <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5">
                         <?php 
-                        $educators = get_users(array('meta_key' => '_lms_is_educator', 'meta_value' => '1'));
+                        $educators = get_users(array(
+                            'role__in' => array('educadora', 'administrator')
+                        ));
                         foreach ($educators as $edu): 
                             $rank = get_user_meta($edu->ID, '_lms_rank_name', true) ?: 'Bronze';
+                            
+                            // Source / Referral Logic
+                            $referrer_id = $wpdb->get_var($wpdb->prepare("SELECT educator_id FROM {$wpdb->prefix}lms_referrals WHERE authority_id = %d", $edu->ID));
+                            $referrer = $referrer_id ? get_userdata($referrer_id) : null;
+                            
                             // Count real referrals from table
                             $ref_count_raw = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}lms_referrals WHERE educator_id = %d", $edu->ID));
                         ?>
@@ -170,6 +291,16 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
                                     <div class="text-sm font-semibold text-white"><?php echo esc_html($edu->display_name); ?></div>
                                     <div class="text-[9px] text-zinc-600"><?php echo esc_html($edu->user_email); ?></div>
                                 </div>
+                            </td>
+                            <td class="py-4 px-4 text-center">
+                                <?php if ($referrer): ?>
+                                    <div class="flex flex-col items-center justify-center group/ref">
+                                        <span class="text-[7px] font-bold text-gold-500/60 uppercase tracking-[0.1em]">Indicado por</span>
+                                        <span class="text-[10px] text-white font-medium border-b border-gold-500/20 group-hover/ref:border-gold-500 transition-all cursor-default" title="<?php echo esc_attr($referrer->user_email); ?>"><?php echo esc_html($referrer->display_name); ?></span>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-[8px] text-zinc-600 font-bold uppercase tracking-widest opacity-40 italic">Orgânico</span>
+                                <?php endif; ?>
                             </td>
                             <td class="py-4 px-4 text-center">
                                 <span class="px-3 py-1 bg-gold-500/10 border border-gold-500/20 text-gold-500 text-[8px] font-bold rounded-full uppercase"><?php echo esc_html($rank); ?></span>
@@ -193,7 +324,8 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
                         <tr class="border-b border-white/10">
                             <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500">Líder Emergente</th>
                             <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500">Educador de Origem</th>
-                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-right">Conectado em</th>
+                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500">Conectado em</th>
+                            <th class="py-4 px-4 text-[9px] uppercase tracking-widest text-zinc-500 text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5">
@@ -215,8 +347,22 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
                                     <span class="text-xs text-zinc-400 font-medium"><?php echo $edu_user ? esc_html($edu_user->display_name) : '---'; ?></span>
                                 </div>
                             </td>
-                            <td class="py-4 px-4 text-right text-[10px] text-zinc-600 font-mono italic">
+                            <td class="py-4 px-4 text-[10px] text-zinc-600 font-mono italic">
                                 <?php echo date('d/m/Y H:i', strtotime($auth->created_at)); ?>
+                            </td>
+                            <td class="py-4 px-4 text-right">
+                                <div class="flex items-center justify-end gap-3">
+                                    <button onclick="editReferralBind(<?php echo $auth->authority_id; ?>, <?php echo $auth->educator_id; ?>)" class="text-gold-500 hover:text-white transition-all transform hover:scale-110" title="Trocar Indicador">
+                                        <span class="dashicons dashicons-edit text-sm"></span>
+                                    </button>
+                                    <form method="POST" onsubmit="return confirm('Tem certeza que deseja desvincular este membro da rede?')" class="inline">
+                                        <input type="hidden" name="action" value="delete_referral">
+                                        <input type="hidden" name="ref_id" value="<?php echo $auth->id; ?>">
+                                        <button type="submit" class="text-zinc-600 hover:text-red-500 transition-all transform hover:scale-110" title="Excluir Vínculo">
+                                            <span class="dashicons dashicons-trash text-sm"></span>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -229,11 +375,14 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
         <div id="admin-tab-alunos" class="admin-tab-content hidden h-0 opacity-0 overflow-hidden transition-all">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <?php 
-                $students = get_users(array('number' => 20, 'orderby' => 'registered', 'order' => 'DESC'));
+                $students = get_users(array('number' => 40, 'orderby' => 'registered', 'order' => 'DESC'));
                 foreach ($students as $stu): 
-                    if (get_user_meta($stu->ID, '_lms_is_educator', true)) continue;
+                    if (Expressive_Referral::is_educator($stu->ID)) continue;
+                    $access_checker = new Expressive_Access();
+                    $is_active = $access_checker->has_active_subscription($stu->ID);
                 ?>
-                <div class="bg-black/20 p-4 rounded-2xl border border-white/5 hover:border-gold-500/30 transition-all">
+                <div class="bg-black/20 p-4 rounded-2xl border border-white/5 hover:border-gold-500/30 transition-all relative">
+                    <div class="absolute top-4 right-4 w-2 h-2 rounded-full <?php echo $is_active ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'; ?>" title="<?php echo $is_active ? 'Acesso Ativo' : 'Acesso Suspenso'; ?>"></div>
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-10 h-10 rounded-full overflow-hidden border border-white/10"><?php echo get_avatar($stu->ID, 40); ?></div>
                         <div class="truncate">
@@ -252,29 +401,44 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
 </div>
 
 <script>
-    function switchAdminTab(tab) {
-        // Hide all
-        document.querySelectorAll('.admin-tab-content').forEach(c => {
-            c.classList.add('hidden', 'h-0', 'opacity-0');
-            c.classList.remove('active', 'opacity-100');
+    function switchAdminTab(tabId) {
+        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-gold-500/10', 'border-gold-500/50', 'text-gold-500');
+            btn.classList.add('text-zinc-500');
+        });
+        document.querySelectorAll('.admin-tab-content').forEach(content => {
+            content.classList.add('hidden', 'h-0', 'opacity-0');
         });
         
-        // Remove active class from buttons
-        document.querySelectorAll('.admin-tab-btn').forEach(b => {
-            b.classList.remove('active', 'bg-gold-500/10', 'border', 'border-gold-500/50', 'text-gold-500');
-            b.classList.add('text-zinc-500');
-        });
+        const activeBtn = event.currentTarget || document.querySelector(`button[onclick="switchAdminTab('${tabId}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'bg-gold-500/10', 'border-gold-500/50', 'text-gold-500');
+            activeBtn.classList.remove('text-zinc-500');
+        }
+        
+        const activeTab = document.getElementById('admin-tab-' + tabId);
+        activeTab.classList.remove('hidden', 'h-0', 'opacity-0');
+    }
 
-        // Show target
-        const target = document.getElementById('admin-tab-' + tab);
-        target.classList.remove('hidden', 'h-0', 'opacity-0');
-        setTimeout(() => {
-            target.classList.add('active', 'opacity-100');
-        }, 10);
-
-        // Highlight button
-        event.currentTarget.classList.add('active', 'bg-gold-500/10', 'border', 'border-gold-500/50', 'text-gold-500');
-        event.currentTarget.classList.remove('text-zinc-500');
+    function editReferralBind(referredId, referrerId) {
+        const form = document.querySelector('form[method="POST"]');
+        const selectMember = form.querySelector('select[name="authority_id"]');
+        const selectEducator = form.querySelector('select[name="educator_id"]');
+        
+        if (selectMember && selectEducator) {
+            selectMember.value = referredId;
+            selectEducator.value = referrerId;
+            
+            window.scrollTo({
+                top: (form.getBoundingClientRect().top + window.pageYOffset) - 100,
+                behavior: 'smooth'
+            });
+            
+            form.classList.add('outline', 'outline-gold-500/50', 'outline-offset-8', 'ring-4', 'ring-gold-500/20');
+            setTimeout(() => {
+                form.classList.remove('outline', 'outline-gold-500/50', 'outline-offset-8', 'ring-4', 'ring-gold-500/20');
+            }, 3000);
+        }
     }
 </script>
 
@@ -282,7 +446,11 @@ $total_authorities = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}lms_ref
     /* Scoped Fixes for WP Admin Interference */
     #wpcontent { background: #000 !important; }
     .elite-admin-wrap { font-family: 'Outfit', sans-serif !important; }
-    .elite-admin-wrap h1, .elite-admin-wrap h2, .elite-admin-wrap h3 { font-family: 'Playfair Display', serif !important; }
+    #wpbody-content form select { background-color: #111 !important; color: #fff !important; }
+    .elite-admin-wrap h1, .elite-admin-wrap h2, .elite-admin-wrap h3, .elite-admin-wrap h4 { 
+        font-family: 'Playfair Display', serif !important; 
+        color: #D4AF37 !important; 
+    }
     .admin-tab-btn.active { box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2); }
     .admin-tab-content { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 </style>

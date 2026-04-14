@@ -14,6 +14,9 @@ class Expressive_Core {
 	}
 
 	private function load_dependencies() {
+		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-logger.php';
+		Expressive_Logger::init();
+
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-cpt.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-access.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-public.php';
@@ -24,6 +27,8 @@ class Expressive_Core {
 		require_once EXPRESSIVE_CORE_PATH . 'admin/class-expressive-admin-settings.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-certificate.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-auth.php';
+		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-external-api.php';
+		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-woo-audit.php';
 	}
 
 	private function define_admin_hooks() {
@@ -34,10 +39,14 @@ class Expressive_Core {
 		$gamify    = new Expressive_Gamification();
 		$settings  = new Expressive_Admin_Settings();
 		$cert      = new Expressive_Certificate();
+		$woo_audit = new Expressive_Woo_Audit();
+
+		$woo_audit->register_hooks();
 
 		add_action( 'init', array( $cpt, 'register_custom_post_types' ) );
 		add_action( 'add_meta_boxes', array( $cpt, 'add_lesson_meta_boxes' ) );
 		add_action( 'save_post', array( $cpt, 'save_lesson_meta_data' ) );
+		add_action( 'save_post', array( $cpt, 'save_visibility_meta_data' ) );
 		add_action( 'admin_menu', array( $settings, 'register_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_post_lms_save_elite_content', array( $settings, 'handle_elite_editor_save' ) );
@@ -46,6 +55,7 @@ class Expressive_Core {
 
 		// Middleware & Engine
 		add_action( 'template_redirect', array( $access, 'protect_content_middleware' ) );
+		add_action( 'init', array( $engine, 'handle_safe_download' ) );
 		$engine->register_ajax_hooks();
 		$referral->register_hooks();
 		$gamify->register_hooks();
@@ -70,6 +80,9 @@ class Expressive_Core {
 		
 		// Universal Elite Avatar Filter
 		add_filter( 'get_avatar', array( $this, 'elite_avatar_filter' ), 10, 5 );
+
+		// Auto-block new users for Elite Area
+		add_action( 'user_register', array( $this, 'auto_block_new_user' ) );
 	}
 
 	public function enqueue_admin_assets( $hook ) {
@@ -87,6 +100,9 @@ class Expressive_Core {
 	}
 
 	public function enqueue_public_assets() {
+		// Native WP Icons
+		wp_enqueue_style( 'dashicons' );
+
 		// Global Styling
 		wp_enqueue_style( 'expressive-lms-style', plugin_dir_url( __FILE__ ) . '../public/css/lms-style.css', array(), $this->version );
 
@@ -150,6 +166,9 @@ class Expressive_Core {
 					case 'dashboard-educador':
 						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-educator-dashboard.php';
 						break;
+					case 'adquirir-acesso':
+						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-purchase-access.php';
+						break;
 				}
 
 				if ( $custom_template && file_exists( $custom_template ) ) {
@@ -190,20 +209,27 @@ class Expressive_Core {
 			$user_id = (int) $id_or_email;
 		} elseif ( is_string( $id_or_email ) && ( $user = get_user_by( 'email', $id_or_email ) ) ) {
 			$user_id = $user->ID;
-		} elseif ( is_object( $id_or_email ) && isset( $id_or_email->user_id ) ) {
-			$user_id = (int) $id_or_email->user_id;
-		} elseif ( is_object( $id_or_email ) && ( $id_or_email instanceof WP_Comment ) ) {
-			$user_id = (int) $id_or_email->user_id;
+		} elseif ( is_object( $id_or_email ) ) {
+			if ( $id_or_email instanceof WP_User ) {
+				$user_id = $id_or_email->ID;
+			} elseif ( $id_or_email instanceof WP_Comment ) {
+				$user_id = (int) $id_or_email->user_id;
+			} elseif ( $id_or_email instanceof WP_Post ) {
+				$user_id = (int) $id_or_email->post_author;
+			} elseif ( isset( $id_or_email->user_id ) ) {
+				$user_id = (int) $id_or_email->user_id;
+			}
 		}
 
 		if ( $user_id ) {
 			$custom_avatar_url = get_user_meta( $user_id, '_lms_custom_avatar', true );
 			if ( $custom_avatar_url ) {
 				$avatar = sprintf(
-					'<img alt="%s" src="%s" class="avatar avatar-%d photo" height="%d" width="%d" style="object-fit:cover; border-radius:inherit;">',
+					'<img alt="%s" src="%s" class="avatar avatar-%d user-%d-avatar photo" height="%d" width="%d" style="object-fit:cover; border-radius:inherit;">',
 					esc_attr( $alt ),
 					esc_url( $custom_avatar_url ),
 					(int) $size,
+					(int) $user_id,
 					(int) $size,
 					(int) $size
 				);
@@ -216,6 +242,20 @@ class Expressive_Core {
 	public static function get_elite_avatar( $user_id, $size = 96, $extra_classes = '' ) {
 		// Since we now have the universal filter, this just wraps get_avatar
 		return get_avatar( $user_id, $size, '', '', array( 'class' => $extra_classes ) );
+	}
+
+	/**
+	 * Automatically block new users from Elite Area by default.
+	 * Synchronizes both LMS Manual Status and API Manager Status.
+	 */
+	public function auto_block_new_user( $user_id ) {
+		// Unified Block via Expressive_Access
+		Expressive_Access::update_access_status( $user_id, 'blocked' );
+		
+		// Optional: Initialize API check timestamp
+		update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
+
+		Expressive_Logger::info( 'AUTH', "Novo usuário bloqueado e sincronizado via Central de Acesso", array( 'user_id' => $user_id ) );
 	}
 
 }

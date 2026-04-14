@@ -12,6 +12,8 @@ class Expressive_Gamification {
 	public function evaluate_gamification_progress( $educator_id, $authority_id ) {
 		$referral_count = $this->get_educator_referral_count( $educator_id );
 		
+		Expressive_Logger::info( 'GAMIFY', "Avaliando progresso de gamificação", array( 'educator_id' => $educator_id, 'authority_id' => $authority_id, 'referral_count' => $referral_count ) );
+
 		// 1. Process Rule of 10 (Bonus)
 		if ( $referral_count > 0 && $referral_count % 10 === 0 ) {
 			$this->trigger_financial_bonus( $educator_id, $referral_count );
@@ -38,22 +40,16 @@ class Expressive_Gamification {
 			$table_bonus,
 			array(
 				'user_id' => $educator_id,
-				'amount'  => 100.00, // Default bonus for every 10 sales
+				'amount'  => 100.00,
 				'source'  => "Bônus Regra dos 10 ($count indicações)",
 			),
 			array( '%d', '%f', '%s' )
 		);
 
-		// Optionally send notification or log activity
+		Expressive_Logger::info( 'GAMIFY', "Bônus financeiro gerado (Regra dos 10)", array( 'educator_id' => $educator_id, 'count' => $count, 'bonus' => 100.00 ) );
 	}
 
 	private function update_educator_rank( $educator_id, $count ) {
-		// Level 1: Bronze (0-9)
-		// Level 2: Prata (10-19)
-		// Level 3: Ouro (20-29)
-		// Level 4: Rubi (30-39)
-		// Level 5: Diamante (40+)
-		
 		$level = floor( $count / 10 ) + 1;
 		if ( $level > 5 ) {
 			$level = 5;
@@ -76,8 +72,9 @@ class Expressive_Gamification {
 			);
 			
 			update_user_meta( $educator_id, '_lms_rank_name', $ranks[$level] );
+
+			Expressive_Logger::info( 'GAMIFY', "LEVEL UP! Educador promovido", array( 'educator_id' => $educator_id, 'old_level' => $current_level, 'new_level' => $level, 'rank' => $ranks[$level] ) );
 			
-			// Action for level up
 			do_action( 'lms_educator_leveled_up', $educator_id, $level, $ranks[$level] );
 		}
 	}

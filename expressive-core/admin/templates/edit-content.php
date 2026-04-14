@@ -124,6 +124,41 @@ $editor_title = ($post_id > 0) ? 'Editar ' . $type_label : 'Criar ' . $type_labe
                         <label class="text-[11px] font-bold uppercase tracking-widest" style="color: rgba(212, 175, 55, 0.8) !important;"><?php echo ($post_type === 'lms_live') ? 'Pauta Estratégica' : 'Descrição detalhada'; ?></label>
                         <textarea name="post_content" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 text-white focus:border-gold-500/50 transition-all outline-none min-h-[300px] leading-relaxed text-sm" placeholder="<?php echo ($post_type === 'lms_live') ? 'Defina os pontos de destaque desta mentoria ao vivo...' : 'Escreva o conteúdo estratégico aqui...'; ?>"><?php echo esc_textarea($content); ?></textarea>
                     </div>
+
+                    <!-- Materials Manager Section (Lessons Only) -->
+                    <div id="section-materials" class="glass p-8 rounded-3xl border border-white/5 space-y-6 <?php echo ($post_type !== 'lms_lesson') ? 'hidden' : ''; ?>">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-sm font-bold uppercase tracking-widest flex items-center gap-2" style="color: #D4AF37 !important;">
+                                <span class="w-1.5 h-4 bg-gold-500 rounded-full"></span>
+                                Materiais de Apoio (PDF, Apostilas)
+                            </h3>
+                            <button type="button" id="elite-add-file-btn" class="text-[10px] font-bold uppercase tracking-widest bg-gold-500/10 text-gold-500 border border-gold-500/20 px-4 py-2 rounded-lg hover:bg-gold-500 hover:text-black transition-all">
+                                Adicionar Material
+                            </button>
+                        </div>
+
+                        <div id="elite-materials-list" class="space-y-3">
+                            <?php
+                            $files = $post_id ? get_post_meta( $post_id, '_lms_files_data', true ) : array();
+                            if ( ! is_array( $files ) ) $files = array();
+
+                            foreach ( $files as $index => $file ) :
+                            ?>
+                                <div class="elite-file-item flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 group">
+                                    <span class="dashicons dashicons-media-document text-gray-500"></span>
+                                    <input type="text" name="lms_files[<?php echo $index; ?>][name]" value="<?php echo esc_attr( $file['name'] ); ?>" class="flex-1 bg-transparent border-none text-sm text-white focus:ring-0" placeholder="Título do Material...">
+                                    <input type="hidden" name="lms_files[<?php echo $index; ?>][id]" value="<?php echo esc_attr( $file['id'] ); ?>">
+                                    <span class="text-[9px] text-gray-600 uppercase font-mono max-w-[100px] truncate"><?php echo basename( get_attached_file( $file['id'] ) ); ?></span>
+                                    <button type="button" class="elite-remove-file text-red-500/50 hover:text-red-500 transition-colors">
+                                        <span class="dashicons dashicons-dismiss" style="font-size: 16px;"></span>
+                                    </button>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        
+                        <input type="hidden" id="elite-files-next-index" value="<?php echo count( $files ); ?>">
+                        <p class="text-[9px] text-gray-600 italic">Estes arquivos serão exibidos para download abaixo do vídeo da aula.</p>
+                    </div>
                 </div>
 
             </div>
@@ -224,6 +259,23 @@ $editor_title = ($post_id > 0) ? 'Editar ' . $type_label : 'Criar ' . $type_labe
                     </select>
                 </div>
 
+                <!-- RBAC Level -->
+                <?php $visibility_role = $post_obj ? get_post_meta($post_id, '_lms_visibility_role', true) : 'all'; ?>
+                <div class="bg-white/5 p-8 rounded-3xl border border-white/10 group hover:border-gold-500/30 transition-all shadow-[0_0_15px_rgba(212,175,55,0.05)] hover:shadow-[0_0_20px_rgba(212,175,55,0.15)]">
+                    <label class="text-[10px] text-gold-500 uppercase font-bold tracking-widest block mb-3 flex items-center gap-2">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        Nível de Acesso (RBAC)
+                    </label>
+                    <select name="lms_visibility_role" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-gold-500/50 outline-none">
+                        <option value="all" <?php selected($visibility_role, 'all'); ?>>Aberto (Todos os Membros)</option>
+                        <option value="educadora" <?php selected($visibility_role, 'educadora'); ?>>Apenas Educadoras (Exclusivo)</option>
+                        <option value="autoridade" <?php selected($visibility_role, 'autoridade'); ?>>Apenas Autoridades (Base)</option>
+                    </select>
+                    <p class="text-[9px] text-gray-500 italic mt-3 leading-relaxed">
+                        Ao restringir, esse material sequer aparecerá no dashboard para usuários da licença não autorizada.
+                    </p>
+                </div>
+
             </div>
         </div>
     </form>
@@ -302,6 +354,9 @@ $editor_title = ($post_id > 0) ? 'Editar ' . $type_label : 'Criar ' . $type_labe
             wrapLessonDate.classList.remove('hidden');
             wrapLiveDate.classList.add('hidden');
             wrapLiveTime.classList.add('hidden');
+            
+            // Show Materials Section
+            document.getElementById('section-materials').classList.remove('hidden');
         } else {
             // Live / Mentoria
             titleLabel.innerText = 'Título da Mentoria (Live)';
@@ -309,6 +364,9 @@ $editor_title = ($post_id > 0) ? 'Editar ' . $type_label : 'Criar ' . $type_labe
             wrapLessonDate.classList.add('hidden');
             wrapLiveDate.classList.remove('hidden');
             wrapLiveTime.classList.remove('hidden');
+            
+            // Hide Materials for Lives (optional/standard)
+            document.getElementById('section-materials').classList.add('hidden');
         }
     }
 
@@ -349,6 +407,48 @@ $editor_title = ($post_id > 0) ? 'Editar ' . $type_label : 'Criar ' . $type_labe
                 }, 1000);
             });
             frame.open();
+        });
+
+        // Materials Manager JS Integration
+        var materialsFrame;
+        $('#elite-add-file-btn').on('click', function(e) {
+            e.preventDefault();
+            if (materialsFrame) { materialsFrame.open(); return; }
+            
+            materialsFrame = wp.media({
+                title: 'Selecionar Materiais de Apoio',
+                button: { text: 'Adicionar à Aula' },
+                multiple: true
+            });
+
+            materialsFrame.on('select', function() {
+                var selections = materialsFrame.state().get('selection');
+                var nextIndex = parseInt($('#elite-files-next-index').val());
+                
+                selections.map(function(attachment) {
+                    attachment = attachment.toJSON();
+                    var html = `
+                        <div class="elite-file-item flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 group animate-fade-in">
+                            <span class="dashicons dashicons-media-document text-gray-500"></span>
+                            <input type="text" name="lms_files[${nextIndex}][name]" value="${attachment.title}" class="flex-1 bg-transparent border-none text-sm text-white focus:ring-0" placeholder="Título do Material...">
+                            <input type="hidden" name="lms_files[${nextIndex}][id]" value="${attachment.id}">
+                            <span class="text-[9px] text-gray-600 uppercase font-mono max-w-[100px] truncate">${attachment.filename}</span>
+                            <button type="button" class="elite-remove-file text-red-500/50 hover:text-red-500 transition-colors">
+                                <span class="dashicons dashicons-dismiss" style="font-size: 16px;"></span>
+                            </button>
+                        </div>
+                    `;
+                    $('#elite-materials-list').append(html);
+                    nextIndex++;
+                });
+                $('#elite-files-next-index').val(nextIndex);
+            });
+            materialsFrame.open();
+        });
+
+        $(document).on('click', '.elite-remove-file', function(e) {
+            e.preventDefault();
+            $(this).closest('.elite-file-item').fadeOut(300, function() { $(this).remove(); });
         });
     });
 </script>

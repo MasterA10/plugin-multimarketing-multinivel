@@ -30,6 +30,8 @@ class Expressive_Activator {
 			authority_id bigint(20) NOT NULL,
 			order_id bigint(20) DEFAULT 0 NOT NULL,
 			order_total decimal(10,2) DEFAULT '0.00' NOT NULL,
+			commission_amount decimal(10,2) DEFAULT '0.00' NOT NULL,
+			referred_role varchar(50) DEFAULT '' NOT NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			KEY educator_id (educator_id),
@@ -47,6 +49,16 @@ class Expressive_Activator {
 		$check_order_total = $wpdb->get_results( "SHOW COLUMNS FROM `$table_referrals` LIKE 'order_total'" );
 		if ( empty( $check_order_total ) ) {
 			$wpdb->query( "ALTER TABLE `$table_referrals` ADD COLUMN order_total decimal(10,2) DEFAULT '0.00' NOT NULL AFTER order_id" );
+		}
+
+		$check_commission = $wpdb->get_results( "SHOW COLUMNS FROM `$table_referrals` LIKE 'commission_amount'" );
+		if ( empty( $check_commission ) ) {
+			$wpdb->query( "ALTER TABLE `$table_referrals` ADD COLUMN commission_amount decimal(10,2) DEFAULT '0.00' NOT NULL AFTER order_total" );
+		}
+
+		$check_role = $wpdb->get_results( "SHOW COLUMNS FROM `$table_referrals` LIKE 'referred_role'" );
+		if ( empty( $check_role ) ) {
+			$wpdb->query( "ALTER TABLE `$table_referrals` ADD COLUMN referred_role varchar(50) DEFAULT '' NOT NULL AFTER commission_amount" );
 		}
 
 		// 3. wp_lms_bonus_log
