@@ -499,7 +499,8 @@ class Expressive_Engine {
 		if ( $success ) {
 			wp_send_json_success( 'Sincronização concluída!' );
 		} else {
-			wp_send_json_error( 'Erro ao sincronizar. Verifique as configurações da API.' );
+			$error_msg = Expressive_External_API::$last_error ?: 'Erro desconhecido na comunicação com a API.';
+			wp_send_json_error( $error_msg );
 		}
 	}
 

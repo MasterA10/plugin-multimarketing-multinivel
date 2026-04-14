@@ -6,7 +6,7 @@ class Expressive_Access {
 	 * Check if a user has an active subscription.
 	 * Hierarchy: Admin > Manual Override > API External > Local Status > WooCommerce
 	 */
-	public function has_active_subscription( $user_id = 0 ) {
+	public function has_active_subscription( $user_id = 0, $allow_api = true ) {
 		if ( ! $user_id && is_user_logged_in() ) {
 			$user_id = get_current_user_id();
 		}
@@ -17,18 +17,15 @@ class Expressive_Access {
 
 		// --- 1. PASSE ADMINISTRATIVO VITALÍCIO ---
 		if ( user_can( $user_id, 'manage_options' ) ) {
-			Expressive_Logger::debug( 'ACCESS', "Acesso concedido: Admin vitalício", array( 'user_id' => $user_id ) );
 			return true;
 		}
 
 		// --- 2. SOBRESCRITA MANUAL (ADMIN OVERDRIVE) ---
 		$manual_status = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
 		if ( $manual_status === 'blocked' ) {
-			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Override manual", array( 'user_id' => $user_id, 'manual_status' => 'blocked' ) );
 			return false;
 		}
 		if ( $manual_status === 'unblocked' ) {
-			Expressive_Logger::info( 'ACCESS', "Acesso concedido: Override manual (desbloqueado)", array( 'user_id' => $user_id ) );
 			return true;
 		}
 
@@ -37,45 +34,53 @@ class Expressive_Access {
 		if ( ! empty( $api_url ) && class_exists( 'Expressive_External_API' ) ) {
 			$cached_status = get_user_meta( $user_id, '_lms_elite_api_status', true );
 			$last_check    = get_user_meta( $user_id, '_lms_elite_api_last_check', true );
-			$one_day       = 24 * HOUR_IN_SECONDS;
+			$sync_interval = get_option( 'lms_api_sync_interval', 3 );
+			$cache_ttl     = max( $sync_interval * MINUTE_IN_SECONDS * 2, HOUR_IN_SECONDS );
 
-			// Se ativo e verificado nas últimas 24h, evita bater na API
-			if ( $cached_status === 'active' && ( time() - (int) $last_check ) < $one_day ) {
-				Expressive_Logger::debug( 'ACCESS', "Acesso concedido: Cache de API válido (24h)", array( 'user_id' => $user_id ) );
-				return true;
+			// Se temos um status da API e a verificação é recente, confia nele como verdade absoluta
+			if ( ! empty( $cached_status ) && $last_check && ( time() - (int) $last_check ) < $cache_ttl ) {
+				return ( $cached_status === 'active' );
 			}
 
-			// Se inativo ou cache expirado, faz a verificação em tempo real
-			Expressive_Logger::info( 'ACCESS', "Consultando API externa (cache expirado ou inativo)", array( 'user_id' => $user_id, 'cached_status' => $cached_status ) );
-			$api_status = Expressive_External_API::check_user_status( $user_id );
-			if ( $api_status === 'active' ) {
-				Expressive_Logger::info( 'ACCESS', "Acesso concedido via API externa", array( 'user_id' => $user_id ) );
-				return true;
+			// Cache expirado ou sem cache: tenta verificação em tempo real (SÓ SE PERMITIDO)
+			if ( $allow_api ) {
+				$api_status = Expressive_External_API::check_user_status( $user_id );
+				if ( $api_status === 'active' ) return true;
+				if ( $api_status === 'inactive' ) return false;
+			} else {
+				// No modo silencioso (dashboard), confia no que já temos
+				if ( ! empty( $cached_status ) ) {
+					return ( $cached_status === 'active' );
+				}
 			}
-			if ( $api_status === 'inactive' ) {
-				Expressive_Logger::warning( 'ACCESS', "Acesso NEGADO via API externa", array( 'user_id' => $user_id ) );
-				return false;
-			}
-			Expressive_Logger::warning( 'ACCESS', "API retornou null (erro/timeout), fallback para status local", array( 'user_id' => $user_id ) );
 		}
 
-		// --- 4. STATUS LOCAL (mesma lógica da página Assinantes) ---
+		// --- 4. STATUS LOCAL (Lógica da página Assinantes) ---
 		$local_status = get_user_meta( $user_id, '_lms_subscription_status', true );
 		if ( $local_status === 'suspended' ) {
-			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Status local suspenso", array( 'user_id' => $user_id ) );
 			return false;
 		}
 
-		// --- 5. WOOCOMMERCE SUBSCRIPTIONS (Fallback final) ---
+		// --- 5. FALLBACK PARA WOOCOMMERCE ---
+		return $this->has_active_woocommerce_subscription( $user_id );
+	}
+
+	/**
+	 * Final fallback: Check WooCommerce Subscriptions or native WooCommerce orders.
+	 */
+	public function has_active_woocommerce_subscription( $user_id ) {
+		// 5.1 WooCommerce Subscriptions plugin (if active)
 		if ( function_exists( 'wcs_user_has_subscription' ) ) {
-			$wc_active = wcs_user_has_subscription( $user_id, '', 'active' );
-			Expressive_Logger::debug( 'ACCESS', "Fallback WooCommerce Subscriptions", array( 'user_id' => $user_id, 'wc_active' => $wc_active ) );
-			return $wc_active;
+			return wcs_user_has_subscription( $user_id, '', 'active' );
 		}
 
-		// Sem API, sem suspensão local, sem WooCommerce = acesso liberado por padrão
-		Expressive_Logger::debug( 'ACCESS', "Acesso concedido: Nenhuma restrição encontrada (padrão)", array( 'user_id' => $user_id ) );
-		return true;
+		// 5.2 Native Fallback: Is 'active' locally?
+		$local_status = get_user_meta( $user_id, '_lms_subscription_status', true );
+		if ( $local_status === 'active' ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

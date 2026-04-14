@@ -110,6 +110,12 @@ class Expressive_Admin_Settings {
 
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : 'expressive-lms';
 		$action = isset( $_GET['action'] ) ? sanitize_text_field( $_GET['action'] ) : 'list';
+		
+		// Proactive Bulk Sync: Whenever admin enters the plugin, we clean the house once.
+		if ( current_user_can( 'manage_options' ) && class_exists( 'Expressive_External_API' ) ) {
+			Expressive_External_API::sync_all_users_status();
+		}
+
 		$template = '';
 
 		// Route to Editor/Curriculum if action is set

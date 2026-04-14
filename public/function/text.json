@@ -1,0 +1,63 @@
+{
+    "success": true,
+    "message": "Dados MOCK recuperados com sucesso para teste de conexão",
+    "data": [
+        {
+            "email": "akkkks@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_AKKKKS"
+        },
+        {
+            "email": "jose@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_JOSE"
+        },
+        {
+            "email": "maria1@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_MARIA1"
+        },
+        {
+            "email": "mastera11cr11@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_MASTERA11CR11"
+        },
+        {
+            "email": "eaglelink764@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_EAGLELINK764"
+        },
+        {
+            "email": "nasalexalves@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_NASALEXALVES"
+        },
+        {
+            "email": "ccpacademybeauty@gmail.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_CATIA ARAUJO"
+        },
+        {
+            "email": "contato@designerale.com",
+            "is_active": true,
+            "expiry_date": "2029-12-31",
+            "plan_name": "Elite VIP (Mock)",
+            "gateway_reference": "MOCK_ADMIN"
+        }
+    ],
+    "last_sync": "2026-04-14T19:38:23.686Z"
+}

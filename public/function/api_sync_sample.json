@@ -1,0 +1,51 @@
+{
+    "description": "Exemplo de Resposta para os Endpoints de Sincronização Elite LMS",
+    "last_sync": "2026-04-04T19:30:00-03:00",
+    "endpoints": {
+        "get_active_list": {
+            "success": true,
+            "message": "Lista detalhada de usuários ativos gerada com sucesso via action: get_active_list",
+            "data": [
+                {
+                    "email": "alex.alves@exemplo.com.br",
+                    "is_active": true,
+                    "expiry_date": "2026-10-15",
+                    "plan_name": "Elite VIP Plus",
+                    "gateway_reference": "SUB_123456789"
+                },
+                {
+                    "email": "suporte@elitetech.com",
+                    "is_active": true,
+                    "expiry_date": "2027-01-20",
+                    "plan_name": "Suporte Técnico Premium",
+                    "gateway_reference": "SUB_987654321"
+                },
+                {
+                    "email": "admin@dashboard.local",
+                    "is_active": true,
+                    "expiry_date": "2099-12-31",
+                    "plan_name": "Lifetime Admin",
+                    "gateway_reference": "INTERNAL_001"
+                },
+                {
+                    "email": "membro.ativo@provedor.com",
+                    "is_active": true,
+                    "expiry_date": "2026-05-30",
+                    "plan_name": "Elite Basic",
+                    "gateway_reference": "SUB_456123789"
+                }
+            ]
+        },
+        "get_user_status": {
+            "success": true,
+            "message": "Status individual recuperado via action: get_user_status",
+            "data": {
+                "email": "alex.alves@exemplo.com.br",
+                "is_active": true,
+                "expiry_date": "2026-10-15",
+                "plan_name": "Elite VIP Plus",
+                "gateway_reference": "SUB_123456789"
+            }
+        }
+    }
+}

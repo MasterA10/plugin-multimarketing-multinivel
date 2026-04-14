@@ -1,6 +1,19 @@
 <?php 
+// Logic for saving API settings
+if ( isset( $_POST['lms_save_api_settings'] ) && check_admin_referer( 'lms_save_api_nonce' ) ) {
+    update_option( 'lms_external_api_url', esc_url_raw( $_POST['api_url'] ) );
+    update_option( 'lms_external_api_token', sanitize_text_field( $_POST['api_token'] ) );
+    
+    // Save Sync Interval (min 3 mins)
+    $interval = isset( $_POST['api_sync_interval'] ) ? max( 3, intval( $_POST['api_sync_interval'] ) ) : 3;
+    update_option( 'lms_api_sync_interval', $interval );
+
+    echo '<div class="updated notice is-dismissible" style="background: rgba(212, 175, 55, 0.1); border-left: 4px solid #D4AF37; color: #D4AF37; padding: 1px 15px; margin: 10px 20px 0 0; border-radius: 8px; font-weight: bold;"><p>Configurações de Conectividade Salvas!</p></div>';
+}
+
 $api_url = get_option( 'lms_external_api_url', '' );
 $api_token = get_option( 'lms_external_api_token', '' );
+$sync_interval = get_option( 'lms_api_sync_interval', 3 );
 $last_api_log = get_option( 'lms_api_last_log', array() );
 
 // Fetch Users for Audit (Same filter as Elite Members -> Assinantes)
@@ -55,17 +68,21 @@ $total_users = count( $users );
                 Configuração Estrutural
             </h3>
             
-            <form method="post" action="" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <form method="post" action="" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-end">
                 <?php wp_nonce_field( 'lms_save_api_nonce' ); ?>
-                <div class="md:col-span-1 lg:col-span-2 space-y-3">
+                <div class="md:col-span-1 lg:col-span-4 space-y-3">
                     <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Endpoint de Sincronização</label>
                     <input name="api_url" type="url" value="<?php echo esc_attr( $api_url ); ?>" placeholder="https://api.exemplo.com/v1" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900 border-l-2 border-l-gold-500/20">
                 </div>
-                <div class="md:col-span-1 lg:col-span-1 space-y-3">
+                <div class="md:col-span-1 lg:col-span-4 space-y-3">
                     <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Chave de Acesso</label>
                     <input name="api_token" type="password" value="<?php echo esc_attr( $api_token ); ?>" placeholder="••••••••••••" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900">
                 </div>
-                <div class="md:col-span-1 lg:col-span-1">
+                <div class="md:col-span-1 lg:col-span-2 space-y-3">
+                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Sinc. (Minutos)</label>
+                    <input name="api_sync_interval" type="number" min="3" value="<?php echo esc_attr( $sync_interval ); ?>" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900">
+                </div>
+                <div class="md:col-span-1 lg:col-span-2">
                     <button type="submit" name="lms_save_api_settings" class="w-full py-5 bg-gold-500 hover:bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg shadow-gold-500/20" style="background-color: #D4AF37 !important; color: #000 !important;">
                         Salvar
                     </button>
@@ -140,7 +157,7 @@ $total_users = count( $users );
                     <?php 
                         $access_checker = new Expressive_Access();
                         foreach ( $users as $user ) : 
-                        $is_active = $access_checker->has_active_subscription( $user->ID );
+                        $is_active = $access_checker->has_active_subscription( $user->ID, false );
                         $is_admin = user_can( $user->ID, 'manage_options' );
                         $manual_status = get_user_meta( $user->ID, '_lms_elite_manual_status', true ) ?: 'none';
                     ?>

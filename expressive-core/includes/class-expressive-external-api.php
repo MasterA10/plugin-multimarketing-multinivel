@@ -2,35 +2,42 @@
 
 class Expressive_External_API {
 
+    public static $last_error = '';
+
     /**
-     * Get the subscription status from the external API.
+     * Get the subscription status from the external API (POST + JSON).
      */
     public static function check_user_status( $user_id ) {
+        self::$last_error = '';
         $api_url   = get_option( 'lms_external_api_url' );
         $api_token = get_option( 'lms_external_api_token' );
 
-        if ( ! $api_url ) return null;
+        if ( ! $api_url ) {
+            self::$last_error = 'URL da API não configurada.';
+            return null;
+        }
 
         $user = get_userdata( $user_id );
         if ( ! $user ) return null;
 
-        $endpoint = add_query_arg( array(
+        $payload = array(
             'action' => 'get_user_status',
             'email'  => $user->user_email
-        ), $api_url );
+        );
 
-        Expressive_Logger::info( 'API', "Requisição individual: check_user_status", array( 'user_id' => $user_id, 'email' => $user->user_email, 'endpoint' => $endpoint ) );
-
-        $response = wp_remote_get( $endpoint, array(
+        $response = wp_remote_post( $api_url, array(
             'headers' => array(
                 'Authorization' => 'Bearer ' . $api_token,
+                'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
             ),
+            'body'    => wp_json_encode( $payload ),
             'timeout' => 15
         ) );
 
         if ( is_wp_error( $response ) ) {
-            Expressive_Logger::error( 'API', "Erro de conexão: " . $response->get_error_message(), array( 'user_id' => $user_id, 'endpoint' => $endpoint ) );
+            self::$last_error = "Erro de rede: " . $response->get_error_message();
+            Expressive_Logger::error( 'API', self::$last_error, array( 'user_id' => $user_id ) );
             return null;
         }
 
@@ -38,15 +45,19 @@ class Expressive_External_API {
         $code = wp_remote_retrieve_response_code( $response );
         $data = json_decode( $body, true );
 
-        Expressive_Logger::info( 'API', "Resposta recebida", array( 'user_id' => $user_id, 'http_code' => $code, 'body_length' => strlen( $body ) ) );
-
         // Store log for the dashboard
         update_option( 'lms_api_last_log', array(
             'timestamp' => current_time( 'mysql' ),
-            'endpoint'  => $endpoint,
+            'endpoint'  => $api_url,
             'code'      => $code,
             'response'  => $body
         ) );
+
+        if ( $code !== 200 ) {
+            self::$last_error = "Erro HTTP $code: " . ( $data['message'] ?? $data['error'] ?? 'Resposta inesperada' );
+            Expressive_Logger::error( 'API', self::$last_error, array( 'body' => $body ) );
+            return null;
+        }
 
         if ( isset( $data['data']['is_active'] ) ) {
             $status = (bool) $data['data']['is_active'] ? 'active' : 'inactive';
@@ -56,37 +67,41 @@ class Expressive_External_API {
             update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
             if ( $expiry ) update_user_meta( $user_id, '_lms_elite_api_expiry', $expiry );
 
-            Expressive_Logger::info( 'API', "Status atualizado via API", array( 'user_id' => $user_id, 'status' => $status, 'expiry' => $expiry ) );
             return $status;
         }
 
-        Expressive_Logger::warning( 'API', "Resposta sem campo 'is_active' — retornando null", array( 'user_id' => $user_id, 'response_body' => substr( $body, 0, 500 ) ) );
+        self::$last_error = 'Estrutura JSON não reconhecida.';
         return null;
     }
 
     /**
-     * Fetch all active subscriptions from the API (bulk) and sync local DB.
+     * Fetch all active subscriptions from the API (bulk POST + JSON).
      */
     public static function sync_all_users_status() {
+        self::$last_error = '';
         $api_url   = get_option( 'lms_external_api_url' );
         $api_token = get_option( 'lms_external_api_token' );
 
         if ( ! $api_url ) {
-            Expressive_Logger::warning( 'API', "Sincronização abortada: API URL não configurada" );
+            self::$last_error = 'URL da API ausente.';
             return false;
         }
 
-        $endpoint = add_query_arg( array( 'action' => 'get_active_list' ), $api_url );
+        $payload = array( 'action' => 'get_active_list' );
 
-        Expressive_Logger::info( 'API', "Sincronização em massa iniciada", array( 'endpoint' => $endpoint ) );
-
-        $response = wp_remote_get( $endpoint, array(
-            'headers' => array( 'Authorization' => 'Bearer ' . $api_token ),
-            'timeout' => 30
+        $response = wp_remote_post( $api_url, array(
+            'headers' => array( 
+                'Authorization' => 'Bearer ' . $api_token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ),
+            'body'    => wp_json_encode( $payload ),
+            'timeout' => 45
         ) );
 
         if ( is_wp_error( $response ) ) {
-            Expressive_Logger::error( 'API', "Erro na sincronização em massa: " . $response->get_error_message() );
+            self::$last_error = "Erro de Conexão: " . $response->get_error_message();
+            Expressive_Logger::error( 'API', self::$last_error );
             return false;
         }
 
@@ -97,35 +112,71 @@ class Expressive_External_API {
         // Store log for the dashboard
         update_option( 'lms_api_last_log', array(
             'timestamp' => current_time( 'mysql' ),
-            'endpoint'  => $endpoint,
+            'endpoint'  => $api_url,
             'code'      => $code,
             'response'  => $body
         ) );
 
+        if ( $code !== 200 ) {
+            self::$last_error = "HTTP $code: " . ( $data['message'] ?? $data['error'] ?? 'Falha no servidor de sincronização' );
+            Expressive_Logger::error( 'API', "Falha na sincronização", array( 'code' => $code, 'body' => $body ) );
+            return false;
+        }
+
+        $active_users_data = array();
+        $raw_data = null;
         if ( isset( $data['data'] ) && is_array( $data['data'] ) ) {
-            $active_emails = $data['data'];
+            $raw_data = $data['data'];
+        } elseif ( is_array( $data ) && ! empty( $data ) && isset( $data[0] ) ) {
+            $raw_data = $data;
+        }
 
-            $users = get_users();
-            $active_count = 0;
-            $inactive_count = 0;
-
-            foreach ( $users as $user ) {
-                $is_active = in_array( $user->user_email, $active_emails );
-                update_user_meta( $user->ID, '_lms_elite_api_status', $is_active ? 'active' : 'inactive' );
-                update_user_meta( $user->ID, '_lms_elite_api_last_check', time() );
-                $is_active ? $active_count++ : $inactive_count++;
+        if ( is_array( $raw_data ) ) {
+            foreach ( $raw_data as $item ) {
+                if ( is_array( $item ) && isset( $item['email'] ) ) {
+                    if ( !isset( $item['is_active'] ) || $item['is_active'] ) {
+                        $email = strtolower( trim( $item['email'] ) );
+                        $active_users_data[$email] = $item;
+                    }
+                } elseif ( is_string( $item ) ) {
+                    $email = strtolower( trim( $item ) );
+                    $active_users_data[$email] = array();
+                }
             }
 
-            Expressive_Logger::info( 'API', "Sincronização em massa concluída", array(
-                'total_users'    => count( $users ),
-                'active_count'   => $active_count,
-                'inactive_count' => $inactive_count,
-                'api_list_size'  => count( $active_emails )
-            ) );
+            $users = get_users();
+            foreach ( $users as $user ) {
+                $email = strtolower( trim( $user->user_email ) );
+                $is_active = isset( $active_users_data[$email] );
+                
+                update_user_meta( $user->ID, '_lms_elite_api_status', $is_active ? 'active' : 'inactive' );
+                update_user_meta( $user->ID, '_lms_elite_api_last_check', time() );
+                
+                if ( $is_active ) {
+                    $u_data = $active_users_data[$email];
+                    if ( !empty( $u_data['expiry_date'] ) ) {
+                        update_user_meta( $user->ID, '_lms_elite_api_expiry', sanitize_text_field( $u_data['expiry_date'] ) );
+                    }
+                    if ( !empty( $u_data['plan_name'] ) ) {
+                        update_user_meta( $user->ID, '_lms_elite_api_plan', sanitize_text_field( $u_data['plan_name'] ) );
+                    }
+                    if ( !empty( $u_data['gateway_reference'] ) ) {
+                        update_user_meta( $user->ID, '_lms_elite_api_gateway_ref', sanitize_text_field( $u_data['gateway_reference'] ) );
+                    }
+                    
+                    // Se a API confirma que é ativo, remove bloqueio automático (mas preserva bloqueio manual do admin)
+                    $manual = get_user_meta( $user->ID, '_lms_elite_manual_status', true );
+                    if ( $manual === 'blocked' ) {
+                        update_user_meta( $user->ID, '_lms_elite_manual_status', 'none' );
+                        update_user_meta( $user->ID, '_lms_subscription_status', 'active' );
+                    }
+                }
+            }
             return true;
         }
 
-        Expressive_Logger::error( 'API', "Sincronização falhou: Resposta inválida", array( 'http_code' => $code, 'body_preview' => substr( $body, 0, 500 ) ) );
+        self::$last_error = 'O servidor retornou um JSON válido, mas a lista de membros não foi encontrada na estrutura.';
+        Expressive_Logger::error( 'API', self::$last_error, array( 'received_json' => $body ) );
         return false;
     }
 }

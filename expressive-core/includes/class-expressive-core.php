@@ -11,6 +11,9 @@ class Expressive_Core {
 		$this->load_dependencies();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
+
+		// CRITICAL: Register cron intervals EARLY so WP-Cron recognizes them before init
+		add_filter( 'cron_schedules', array( $this, 'register_custom_cron_intervals' ) );
 	}
 
 	private function load_dependencies() {
@@ -193,6 +196,37 @@ class Expressive_Core {
 			flush_rewrite_rules();
 			update_option( 'lms_needs_flush_v2', 'no' );
 		}
+
+		// --- WP CRON: Sincronização Periódica da API ---
+		add_action( 'lms_api_periodic_sync_task', array( 'Expressive_External_API', 'sync_all_users_status' ) );
+
+		$configured_interval = max( 180, intval( get_option( 'lms_api_sync_interval', 3 ) ) * 60 );
+		$next_scheduled = wp_next_scheduled( 'lms_api_periodic_sync_task' );
+
+		if ( ! $next_scheduled ) {
+			// Nenhum evento agendado — cria pela primeira vez
+			wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
+		} else {
+			// Verifica se o intervalo mudou nas configurações
+			$stored_interval = get_option( 'lms_api_cron_interval_seconds', 0 );
+			if ( (int) $stored_interval !== $configured_interval ) {
+				// Intervalo mudou — reagenda com o novo valor
+				wp_clear_scheduled_hook( 'lms_api_periodic_sync_task' );
+				wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
+				update_option( 'lms_api_cron_interval_seconds', $configured_interval );
+			}
+		}
+	}
+
+	public function register_custom_cron_intervals( $schedules ) {
+		$interval_minutes = intval( get_option( 'lms_api_sync_interval', 3 ) );
+		$interval_seconds = max( 180, $interval_minutes * 60 ); // Min 3 mins
+
+		$schedules['lms_custom_sync'] = array(
+			'interval' => $interval_seconds,
+			'display'  => sprintf( 'Elite API Sync (Cada %d min)', $interval_minutes )
+		);
+		return $schedules;
 	}
 
 	public function run() {

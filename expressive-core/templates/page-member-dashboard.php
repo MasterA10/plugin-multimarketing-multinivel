@@ -1289,6 +1289,6 @@ $visibility_meta_query = array(
         .custom-scrollbar::-webkit-scrollbar { display: none !important; }
     </style>
     <?php wp_footer(); ?>
-
+    <?php include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php'; ?>
 </body>
 </html>
