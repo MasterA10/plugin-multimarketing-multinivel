@@ -95,6 +95,17 @@ class Expressive_Admin_Settings {
 		// Enqueue Tailwind for this dashboard only
 		add_action( 'admin_footer', function() {
 			echo '<script src="https://cdn.tailwindcss.com"></script>';
+			echo '<script>
+				tailwind.config = {
+					theme: {
+						extend: {
+							colors: {
+								gold: { 400: "#F2D480", 500: "#D4AF37", 600: "#AA8C2C" }
+							}
+						}
+					}
+				}
+			</script>';
 		} );
 
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : 'expressive-lms';

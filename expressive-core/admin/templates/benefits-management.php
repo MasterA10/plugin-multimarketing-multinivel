@@ -77,11 +77,14 @@ $total_pages = ceil( $total_users / $per_page );
     <div class="mb-10 flex flex-col md:flex-row gap-4">
         <form method="get" class="flex-1 flex gap-3">
             <input type="hidden" name="page" value="elite-benefits">
-            <div class="relative flex-1">
-                <span class="absolute left-5 top-0 bottom-0 flex items-center text-gold-500/50">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </span>
-                <input type="text" name="s_user" value="<?php echo esc_attr( $search ); ?>" placeholder="Filtre por nome, e-mail ou identificador..." class="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl pl-14 pr-6 py-5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-gold-500/40 focus:bg-zinc-900 outline-none transition-all shadow-inner">
+            <div class="relative flex-1 group">
+                <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none z-10">
+                    <svg class="w-6 h-6 text-gold-500/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" name="s_user" value="<?php echo esc_attr( $search ); ?>" 
+                    placeholder="Filtrar por nome, email ou ID..." 
+                    style="padding-left: 70px !important; height: 70px !important;"
+                    class="w-full bg-white/5 border border-zinc-800 rounded-3xl text-xl text-white placeholder-zinc-600 focus:border-gold-500/50 focus:bg-black/40 outline-none transition-all shadow-2xl">
             </div>
             <button type="submit" class="bg-zinc-800 hover:bg-zinc-700 text-gold-500 border border-gold-500/20 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
                 Filtrar Rede
