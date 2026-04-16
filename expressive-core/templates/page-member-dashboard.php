@@ -193,40 +193,8 @@ $visibility_meta_query = array(
 ?>
 <body class="bg-black text-white font-sans min-h-screen flex">
 
-    <!-- OVERLAY DE BLOQUEIO / MENSALIDADE -->
-    <?php if ( ! $is_guest && ! $has_access ) : ?>
-    <div class="fixed inset-0 z-[60] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center animate-fade-in">
-        <div class="max-w-xl w-full glass p-10 md:p-16 rounded-[60px] border border-gold-500/30 shadow-2xl relative overflow-hidden group">
-            <!-- Decorative Glow -->
-            <div class="absolute -top-12 -right-12 w-48 h-48 bg-gold-500/10 rounded-full blur-3xl group-hover:bg-gold-500/20 transition-all duration-1000"></div>
-            
-            <div class="relative z-10 space-y-8">
-                <!-- Icon -->
-                <div class="w-24 h-24 bg-gold-500/10 rounded-full flex items-center justify-center mx-auto border border-gold-500/20">
-                    <svg class="w-10 h-10 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                </div>
-
-                <div class="space-y-4">
-                    <span class="text-[10px] text-gold-500 uppercase tracking-[0.5em] font-bold">Acesso Suspenso ou Não Adquirido</span>
-                    <h2 class="text-4xl font-serif italic text-white leading-tight">Sua Jornada de Elite <br> <span class="text-gold-500">Começa Já</span></h2>
-                    <p class="text-zinc-500 text-sm leading-relaxed font-light">
-                        Você está a um passo da maior formação em micropigmentação do país. Renove seu acesso ou adquira sua vaga na <span class="text-white font-medium">CCP Academy</span> para desbloquear todos os treinamentos e sua rede.
-                    </p>
-                </div>
-
-                <div class="pt-4 space-y-4">
-                    <a href="<?php echo home_url('/elite/ccp-academy/'); ?>" class="block w-full py-5 bg-gold-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-white hover:scale-[1.02] transition-all shadow-xl shadow-gold-500/20">
-                        Adquirir Acesso Academy
-                    </a>
-                    <a href="<?php echo wp_logout_url(); ?>" class="text-[10px] text-zinc-600 hover:text-white uppercase tracking-widest block transition-colors">
-                        Desconectar da Conta
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <style>body { height: 100vh; overflow: hidden !important; }</style>
-    <?php endif; ?>
+    <!-- ELITE CURIOSITY ACCESS: No hard block for logged-in inactive users. 
+         They browse in 'Visitor Mode' like guests. -->
 
     <!-- Sidebar shadow for mobile -->
     <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity duration-300 opacity-0"></div>

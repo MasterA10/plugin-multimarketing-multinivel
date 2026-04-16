@@ -4,7 +4,8 @@
  * 
  * High-fidelity floating badge for non-logged-in users.
  */
-if ( is_user_logged_in() ) return;
+$access_checker = new Expressive_Access();
+if ( $access_checker->has_active_subscription() ) return;
 ?>
 
 <div id="elite-visitor-indicator" class="fixed bottom-8 right-8 z-[9999] animate-fade-in-up">
