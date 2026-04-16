@@ -185,6 +185,12 @@ class Expressive_Logger {
 		add_action( 'wp_mail_failed', array( __CLASS__, 'log_mail_failed' ) );
 		add_action( 'switch_theme', array( __CLASS__, 'log_theme_change' ), 10, 3 );
 		add_action( 'upgrader_process_complete', array( __CLASS__, 'log_system_update' ), 10, 2 );
+
+		// WooCommerce Diagnostics
+		add_action( 'woocommerce_new_order', array( __CLASS__, 'log_wc_new_order' ) );
+		add_action( 'woocommerce_order_status_changed', array( __CLASS__, 'log_wc_status_change' ), 10, 4 );
+		add_action( 'woocommerce_payment_failed', array( __CLASS__, 'log_wc_payment_failed' ) );
+		add_action( 'woocommerce_checkout_error', array( __CLASS__, 'log_wc_checkout_error' ) );
 	}
 
 	public static function log_mail_failed( $wp_error ) {
@@ -208,6 +214,38 @@ class Expressive_Logger {
 				'item' => isset($options['plugins']) ? $options['plugins'] : (isset($options['theme']) ? $options['theme'] : 'bulk')
 			) );
 		}
+	}
+
+	public static function log_wc_new_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		self::info( 'DIAGNOSTIC', "Novo pedido WooCommerce inicializado", array(
+			'order_id' => $order_id,
+			'customer' => $order ? $order->get_billing_email() : 'guest'
+		) );
+	}
+
+	public static function log_wc_status_change( $order_id, $old_status, $new_status, $order ) {
+		self::info( 'DIAGNOSTIC', "Alteração de status de pedido WooCommerce", array(
+			'order_id' => $order_id,
+			'from'     => $old_status,
+			'to'       => $new_status,
+			'customer' => $order->get_billing_email()
+		) );
+	}
+
+	public static function log_wc_payment_failed( $order_id ) {
+		$order = wc_get_order( $order_id );
+		self::error( 'DIAGNOSTIC', "Falha no pagamento de pedido WooCommerce", array(
+			'order_id' => $order_id,
+			'method'   => $order ? $order->get_payment_method_title() : 'unknown',
+			'customer' => $order ? $order->get_billing_email() : 'unknown'
+		) );
+	}
+
+	public static function log_wc_checkout_error( $error_message ) {
+		self::warning( 'DIAGNOSTIC', "Erro de validação no checkout detectado", array(
+			'message' => strip_tags( $error_message )
+		) );
 	}
 
 	public static function log_login( $user_login, $user ) {
