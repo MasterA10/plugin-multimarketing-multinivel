@@ -19,6 +19,7 @@ class Expressive_Core {
 	private function load_dependencies() {
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-logger.php';
 		Expressive_Logger::init();
+		Expressive_Logger::register_hooks();
 
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-cpt.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-access.php';
@@ -193,8 +194,23 @@ class Expressive_Core {
 					case 'dashboard-educador':
 						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-educator-dashboard.php';
 						break;
-					case 'adquirir-acesso':
-						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-purchase-access.php';
+			// Unified Sales Flow: Redirect "Adquirir Acesso" to the new CCP Academy Landing Page
+			if ( $page_type === 'adquirir-acesso' || is_page('adquirir-acesso') ) {
+				wp_safe_redirect( home_url( '/elite/ccp-academy/' ), 301 );
+				exit;
+			}
+
+			if ( $page_type ) {
+				$custom_template = '';
+				switch ( $page_type ) {
+					case 'login':
+						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-login.php';
+						break;
+					case 'area-de-membros':
+						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-member-dashboard.php';
+						break;
+					case 'dashboard-educador':
+						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-educator-dashboard.php';
 						break;
 				}
 
@@ -203,6 +219,12 @@ class Expressive_Core {
 				}
 			}
 
+		}
+
+		// Handle Legacy URIs Redirect
+		if ( strpos( $_SERVER['REQUEST_URI'], '/adquirir-acesso' ) !== false ) {
+			wp_safe_redirect( home_url( '/elite/ccp-academy/' ), 301 );
+			exit;
 		}
 
 		// Academy Auto-Slug Matching

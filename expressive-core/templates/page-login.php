@@ -93,7 +93,7 @@
 
         <!-- Footer Info -->
         <p class="text-center mt-8 text-gray-500 text-sm">
-            Não é um membro ainda? <a href="<?php echo home_url('/adquirir-acesso/'); ?>" class="text-gold-400 font-medium hover:underline">Adquirir meu acesso</a>
+            Não é um membro ainda? <a href="<?php echo home_url('/elite/ccp-academy/'); ?>" class="text-gold-400 font-medium hover:underline">Adquirir meu acesso</a>
         </p>
     </div>
 

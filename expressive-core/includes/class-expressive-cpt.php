@@ -97,6 +97,62 @@ class Expressive_CPT {
 			'query_var'    => true,
 			'rewrite'      => array( 'slug' => 'elite', 'with_front' => false ),
 		) );
+
+		// Ensure core landing pages exist (Singleton Pattern)
+		if ( ! wp_next_scheduled( 'lms_ensure_singletons_event' ) ) {
+			$this->ensure_singleton_landing_pages();
+		}
+	}
+
+	/**
+	 * Ensures exactly 3 core landing pages exist with fixed slugs and templates.
+	 */
+	public function ensure_singleton_landing_pages() {
+		$singletons = array(
+			'mestre' => array(
+				'title'    => 'Elite Gran Master',
+				'template' => 'gran-master'
+			),
+			'baile-de-gala' => array(
+				'title'    => 'Baile de Gala',
+				'template' => 'gala'
+			),
+			'ccp-academy' => array(
+				'title'    => 'CCP Academy',
+				'template' => 'ccp-academy'
+			),
+		);
+
+		foreach ( $singletons as $slug => $data ) {
+			$exists = get_posts( array(
+				'post_type'  => 'elite_lp',
+				'name'       => $slug,
+				'post_status' => 'any',
+				'posts_per_page' => 1
+			) );
+
+			if ( ! $exists ) {
+				$post_id = wp_insert_post( array(
+					'post_title'  => $data['title'],
+					'post_name'   => $slug,
+					'post_type'   => 'elite_lp',
+					'post_status' => 'publish',
+				) );
+
+				if ( $post_id ) {
+					update_post_meta( $post_id, '_elite_lp_template', $data['template'] );
+				}
+			} else {
+				// Ensure correct template is set if page already exists
+				$post_id = $exists[0]->ID;
+				update_post_meta( $post_id, '_elite_lp_template', $data['template'] );
+				
+				// Re-publish if it was trashed or drafted (Singleton must stay alive)
+				if ( $exists[0]->post_status !== 'publish' ) {
+					wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
+				}
+			}
+		}
 	}
 
 	public function add_lesson_meta_boxes() {

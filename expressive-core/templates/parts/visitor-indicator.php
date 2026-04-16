@@ -24,12 +24,12 @@ if ( is_user_logged_in() ) return;
 
         <!-- Description -->
         <p class="text-xs text-zinc-400 mb-6 leading-relaxed">
-            Você está explorando a plataforma em modo guest. Para desbloquear <span class="text-white font-medium italic">descontos de até 40%</span> e conteúdos exclusivos, torne-se um membro.
+            Você está explorando a plataforma em modo visitante. Para desbloquear <span class="text-white font-medium italic">descontos de até 40%</span> e conteúdos exclusivos, torne-se um membro.
         </p>
 
         <!-- Actions -->
         <div class="flex flex-col gap-3">
-            <a href="https://pay.kiwify.com.br/hCg3A8Q" target="_blank" class="w-full bg-gold-500 hover:bg-gold-400 text-black px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/20 text-center flex items-center justify-center gap-2 group">
+            <a href="<?php echo home_url('/elite/ccp-academy/'); ?>" class="w-full bg-gold-500 hover:bg-gold-400 text-black px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-gold-500/20 text-center flex items-center justify-center gap-2 group">
                 <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                 Adquirir Acesso Elite
             </a>

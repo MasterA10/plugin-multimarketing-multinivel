@@ -116,6 +116,36 @@ class Expressive_Admin_Settings {
 			'elite-logs',
 			array( $this, 'render_admin_hub' )
 		);
+
+		// Singleton UI Locking for Landing Pages
+		add_action( 'admin_head', array( $this, 'lock_elite_lp_ui' ) );
+		add_filter( 'map_meta_cap', array( $this, 'disable_elite_lp_deletion' ), 10, 4 );
+	}
+
+	/**
+	 * Hides "Add New" and "Trash" buttons for elite_lp via CSS
+	 */
+	public function lock_elite_lp_ui() {
+		$screen = get_current_screen();
+		if ( $screen && ( $screen->post_type === 'elite_lp' || (isset($_GET['page']) && $_GET['page'] === 'elite-pages') ) ) {
+			echo '<style>
+				.page-title-action, .add-new-h2, .view-switch, .bulkactions, .row-actions .trash, .row-actions .delete, .submitdelete, #delete-action { display: none !important; }
+				#post-body-content #titlediv #title { background: #f0f0f1; pointer-events: none; }
+			</style>';
+		}
+	}
+
+	/**
+	 * Disables deletion capability for elite_lp
+	 */
+	public function disable_elite_lp_deletion( $caps, $cap, $user_id, $args ) {
+		if ( 'delete_post' === $cap || 'delete_others_posts' === $cap || 'delete_private_posts' === $cap || 'delete_published_posts' === $cap ) {
+			$post = get_post( $args[0] );
+			if ( $post && 'elite_lp' === $post->post_type ) {
+				$caps[] = 'do_not_allow';
+			}
+		}
+		return $caps;
 	}
 
 	public function render_admin_hub() {

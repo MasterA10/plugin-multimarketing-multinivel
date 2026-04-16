@@ -184,7 +184,7 @@ if ( ! is_array( $supporting_files ) ) $supporting_files = array();
                                 <h3 class="text-2xl font-serif italic text-white mb-2 tracking-tight">Estratégia Exclusiva</h3>
                                 <p class="text-[11px] text-zinc-500 uppercase tracking-widest mb-8 leading-relaxed">Este treinamento de alto impacto está disponível apenas para membros ativos da Elite.</p>
                                 
-                                <a href="<?php echo home_url('/adquirir-acesso'); ?>" class="group relative px-10 py-4 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
+                                <a href="<?php echo home_url('/elite/ccp-academy/'); ?>" class="group relative px-10 py-4 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
                                     <span class="relative z-10">Desbloquear Minha Jornada</span>
                                     <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                                 </a>
@@ -296,7 +296,7 @@ if ( ! is_array( $supporting_files ) ) $supporting_files = array();
                         <?php if ( ! $has_access ) : ?>
                             <div class="mt-8 p-6 bg-gold-500/5 border border-gold-500/10 rounded-2xl text-center">
                                 <p class="text-[9px] text-gold-500/80 uppercase tracking-[0.2em] font-medium mb-4">Atualize seu acesso para baixar as ferramentas e apostilas desta estratégia.</p>
-                                <a href="<?php echo home_url( '/adquirir-acesso' ); ?>" class="text-[8px] text-black bg-gold-500 font-black uppercase tracking-[0.3em] px-6 py-2 rounded-lg hover:bg-gold-400 transition-all">Liberar Downloads Agora</a>
+                                <a href="<?php echo home_url( '/elite/ccp-academy/' ); ?>" class="text-[8px] text-black bg-gold-500 font-black uppercase tracking-[0.3em] px-6 py-2 rounded-lg hover:bg-gold-400 transition-all">Liberar Downloads Agora</a>
                             </div>
                         <?php endif; ?>
                     </div>

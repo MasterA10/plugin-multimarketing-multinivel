@@ -154,17 +154,30 @@ class Expressive_Logger {
 	}
 
 	/**
-	 * Limpa o arquivo de log.
+	 * Register system hooks for automatic logging.
 	 */
-	public static function clear_log() {
-		/* Desativado por solicitação: Logs não podem ser limpos manualmente */
-		/*
-		if ( ! self::$initialized ) self::init();
-		if ( file_exists( self::$log_file ) ) {
-			file_put_contents( self::$log_file, '' );
-		}
-		self::info( 'CORE', 'Log limpo manualmente por admin', array( 'user_id' => get_current_user_id() ) );
-		*/
+	public static function register_hooks() {
+		add_action( 'wp_login', array( __CLASS__, 'log_login' ), 10, 2 );
+		add_action( 'wp_logout', array( __CLASS__, 'log_logout' ) );
+		add_action( 'user_register', array( __CLASS__, 'log_registration' ) );
+		add_action( 'profile_update', array( __CLASS__, 'log_profile_update' ), 10, 2 );
+	}
+
+	public static function log_login( $user_login, $user ) {
+		self::info( 'AUTH', "Usuário autenticado no sistema", array( 'user_id' => $user->ID, 'login' => $user_login ) );
+	}
+
+	public static function log_logout() {
+		$user_id = get_current_user_id();
+		self::info( 'AUTH', "Usuário encerrou a sessão", array( 'user_id' => $user_id ) );
+	}
+
+	public static function log_registration( $user_id ) {
+		self::info( 'AUTH', "Novo usuário registrado na plataforma", array( 'user_id' => $user_id ) );
+	}
+
+	public static function log_profile_update( $user_id, $old_user_data ) {
+		self::info( 'AUTH', "Perfil de usuário atualizado", array( 'user_id' => $user_id ) );
 	}
 
 	/**

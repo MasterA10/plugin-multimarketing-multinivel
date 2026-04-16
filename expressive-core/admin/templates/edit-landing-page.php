@@ -44,6 +44,10 @@ if ($current_template === 'ccp-academy') {
         'homenagens' => array('label' => 'Homenagens Especiais', 'has_button' => false),
         'speaker' => array('label' => 'Speaker (Rose Oliveira)', 'has_button' => false),
         'ceo' => array('label' => 'Time CEO & Mentoras', 'has_button' => false),
+        'photo_juliana' => array('label' => 'Foto: Juliana Parra', 'has_button' => false),
+        'photo_catia' => array('label' => 'Foto: Cátia Araújo', 'has_button' => false),
+        'photo_cley' => array('label' => 'Foto: Cley Fernandes', 'has_button' => false),
+        'photo_paty' => array('label' => 'Foto: Paty Batista', 'has_button' => false),
         'cta_qr' => array('label' => 'Passaporte Final (QR Code + Botão)', 'has_button' => true, 'button_default' => 'Garanta sua Vaga Agora')
     );
 } else {

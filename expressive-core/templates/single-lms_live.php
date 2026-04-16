@@ -149,7 +149,7 @@ $has_access = $access_checker->has_active_subscription(get_current_user_id());
                         <h3 class="text-2xl font-serif italic text-white mb-2 tracking-tight">Mentoria em Andamento</h3>
                         <p class="text-[11px] text-zinc-500 uppercase tracking-widest mb-8 leading-relaxed font-medium">Esta sala de mentoria é exclusiva para alunos com assinatura ativa. O sinal de transmissão está bloqueado para seu perfil.</p>
                         
-                        <a href="<?php echo home_url('/adquirir-acesso'); ?>" class="group relative px-10 py-5 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
+                        <a href="<?php echo home_url('/elite/ccp-academy/'); ?>" class="group relative px-10 py-5 bg-gold-500 hover:bg-gold-400 text-black font-bold text-[10px] uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-gold-500/10 hover:shadow-gold-500/20 hover:scale-105 active:scale-95 overflow-hidden">
                             <span class="relative z-10">Garantir Meu Acesso Agora</span>
                             <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                         </a>

@@ -52,6 +52,7 @@ function get_elite_button($section_key, $buttons, $default_label) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Inter:wght@200;400;600&family=Outfit:wght@300;600&display=swap" rel="stylesheet">
+    <?php wp_head(); ?>
     <style>
         :root {
             --gold: #c5a059;
@@ -98,8 +99,9 @@ function get_elite_button($section_key, $buttons, $default_label) {
             </div>
             <span class="text-[9px] tracking-[0.6em] font-light uppercase opacity-40 outfit hidden md:block">Gran Master Experience</span>
         </div>
-        <a href="#cta" class="text-[8px] md:text-[9px] uppercase tracking-[0.15em] md:tracking-[0.4em] font-bold bg-[#c5a059] text-black px-4 md:px-6 py-2 md:py-3 hover:bg-[#e2c275] transition-all rounded-sm">
-            Garanta sua Vaga
+        <?php $hero_btn = get_elite_button('hero', $buttons, 'Garanta sua Vaga'); ?>
+        <a href="<?php echo esc_url($hero_btn['url']); ?>" class="text-[8px] md:text-[9px] uppercase tracking-[0.15em] md:tracking-[0.4em] font-bold bg-[#c5a059] text-black px-4 md:px-6 py-2 md:py-3 hover:bg-[#e2c275] transition-all rounded-sm shadow-lg">
+            <?php echo esc_html($hero_btn['label']); ?>
         </a>
     </nav>
 
@@ -383,14 +385,18 @@ function get_elite_button($section_key, $buttons, $default_label) {
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
                 <?php 
-                $team = ["Juliana Parra (CEO)", "Cátia Araújo", "Cley Fernandes", "Paty Batista"];
+                $team = [
+                    ["Juliana Parra (CEO)", "photo_juliana"],
+                    ["Cátia Araújo", "photo_catia"],
+                    ["Cley Fernandes", "photo_cley"],
+                    ["Paty Batista", "photo_paty"]
+                ];
                 foreach ($team as $member) : ?>
                     <div class="space-y-4 text-center group">
-                        <div class="aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-[#c5a059] transition-all duration-500 scale-95 group-hover:scale-100">
-                             <!-- Space for team photos -->
-                             <div class="w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-white/20 italic">Foto</div>
+                        <div class="aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-[#c5a059] transition-all duration-500 scale-95 group-hover:scale-100 shadow-[0_0_30px_rgba(197,160,89,0.1)]">
+                             <?php echo render_elite_media($member[1], $media); ?>
                         </div>
-                        <h5 class="text-white font-bold uppercase tracking-widest text-[10px]"><?php echo $member; ?></h5>
+                        <h5 class="text-white font-bold uppercase tracking-widest text-[10px]"><?php echo $member[0]; ?></h5>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -481,6 +487,6 @@ function get_elite_button($section_key, $buttons, $default_label) {
             });
         });
     </script>
-
+    <?php wp_footer(); ?>
 </body>
 </html>
