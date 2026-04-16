@@ -1,12 +1,11 @@
 <?php
 /**
- * Template Name: Academia PMU - Equipe
- * Description: Template luxuoso para exibição da diretoria e educadores da Academia PMU Beauty.
+ * Template Name: Academia PMU - Equipe Standalone
+ * Description: Template luxuoso e independente para exibição da diretoria e educadores da Academia PMU Beauty.
  */
 
-if ( ! isset( $is_shortcode ) || ! $is_shortcode ) {
-    get_header();
-}
+// Force immersion
+show_admin_bar(false);
 
 // Fetch all members
 $args = array(
@@ -26,7 +25,6 @@ if ($query->have_posts()) {
         $query->the_post();
         $tier = get_post_meta(get_the_ID(), '_academy_member_tier', true) ?: 'convidado';
         
-        // Normalize old grandmaster slug if it exists
         if ($tier === 'grandmaster') $tier = 'grand_master';
 
         if (isset($members_by_tier[$tier])) {
@@ -50,8 +48,16 @@ $sections = array(
     'convidado'    => 'Educadores Convidados'
 );
 ?>
-
-<div class="expressive-academy-team-page">
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Equipe - Academia PMU Beauty</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <?php wp_head(); ?>
     <style>
         :root {
             --elite-gold: #D4AF37;
@@ -61,8 +67,14 @@ $sections = array(
             --elite-silver: #C0C0C0;
         }
 
-        .expressive-academy-team-page {
+        body {
             background-color: var(--elite-black);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .expressive-academy-team-page {
             color: #fff;
             padding: 80px 20px;
             font-family: 'Outfit', sans-serif;
@@ -70,8 +82,9 @@ $sections = array(
         }
 
         .academy-container {
-            max-width: 1300px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 0 40px;
         }
 
         .academy-header {
@@ -127,12 +140,6 @@ $sections = array(
             margin: 20px auto 0;
         }
 
-        .academy-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 40px;
-        }
-
         .member-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -157,35 +164,10 @@ $sections = array(
             z-index: 10;
         }
 
-        /* LIDERANÇA TIER: Majestic Circular Design */
-        .tier-lideranca .member-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 40px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        @media (max-width: 1200px) {
-            .member-grid, .tier-lideranca .member-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .member-grid, .tier-lideranca .member-grid {
-                grid-template-columns: 1fr;
-            }
-            .academy-container {
-                padding: 0 20px;
-            }
-        }
-
         .tier-lideranca .member-card {
             border: 1px solid rgba(212, 175, 55, 0.2);
             background: linear-gradient(135deg, #0d0d0d 0%, #050505 100%);
             box-shadow: 0 0 50px rgba(0,0,0,0.8);
-            z-index: 2;
             text-align: center;
         }
 
@@ -193,28 +175,22 @@ $sections = array(
             width: 250px;
             height: 250px;
             margin: 80px auto 40px;
-            padding-top: 0;
             border-radius: 50%;
             position: relative;
             z-index: 2;
-            overflow: visible !important; /* Prevent crown clipping */
+            overflow: visible !important;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding-top: 0 !important; /* Fix inheritance: prevent oval distortion */
+            box-sizing: border-box;
         }
 
-        /* Spinning Gold Stoke (Thinner & Refined) */
         .tier-lideranca .member-photo-wrap::before {
             content: '';
             position: absolute;
-            top: -6px; left: -6px; right: -6px; bottom: -6px;
-            background: conic-gradient(from 0deg, 
-                transparent 20%, 
-                var(--elite-gold) 45%, 
-                var(--elite-gold-light) 50%, 
-                var(--elite-gold) 55%, 
-                transparent 80%
-            );
+            top: -8px; left: -8px; right: -8px; bottom: -8px;
+            background: conic-gradient(from 0deg, transparent 20%, var(--elite-gold) 45%, var(--elite-gold-light) 50%, var(--elite-gold) 55%, transparent 80%);
             border-radius: 50%;
             animation: rotate-gold 2.5s linear infinite;
             z-index: -1;
@@ -225,12 +201,11 @@ $sections = array(
             100% { transform: rotate(360deg); }
         }
 
-        /* Stroke Mask / Inner Ring */
         .tier-lideranca .member-photo-wrap::after {
             content: '';
             position: absolute;
-            top: -3px; left: -3px; right: -3px; bottom: -3px;
-            background: #000;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            background: var(--elite-black);
             border-radius: 50%;
             z-index: -1;
         }
@@ -238,15 +213,14 @@ $sections = array(
         .tier-lideranca .member-photo {
             width: 100% !important;
             height: 100% !important;
-            position: relative !important;
             border-radius: 50%;
-            filter: grayscale(0%);
             border: 4px solid #000;
             object-fit: cover;
-            display: block;
+            position: relative !important; /* Reset absolute from general style */
+            top: auto !important;
+            left: auto !important;
         }
 
-        /* Imposing Crown over Photo */
         .majestic-crown-wrap {
             position: absolute;
             top: -45px;
@@ -254,7 +228,6 @@ $sections = array(
             transform: translateX(-50%);
             width: 100px;
             z-index: 10;
-            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
             animation: crown-float 3s ease-in-out infinite alternate;
         }
 
@@ -269,33 +242,11 @@ $sections = array(
             fill: url(#gold-gradient);
         }
 
-        .member-card:hover {
-            transform: translateY(-15px);
-            border-color: var(--elite-gold-light);
-            box-shadow: 0 40px 80px rgba(212, 175, 55, 0.3);
-            z-index: 10;
-        }
-        
-        /* Centralizar info na liderança */
         .tier-lideranca .member-info {
             padding: 30px 50px 50px;
             align-items: center;
-            background: transparent;
         }
 
-        .tier-lideranca .member-instagram a {
-            justify-content: center;
-        }
-
-        .tier-lideranca .member-background {
-            border-left: none;
-            border-top: 1px solid var(--elite-gold);
-            padding-left: 0;
-            padding-top: 20px;
-            text-align: center;
-        }
-        
-        /* General styles for other tiers still apply or are reset */
         .member-photo-wrap {
             position: relative;
             padding-top: 100%;
@@ -330,26 +281,6 @@ $sections = array(
             color: var(--elite-gold);
             border: 1px solid var(--elite-gold);
             z-index: 5;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .tier-lideranca .tier-badge {
-            display: none; /* Removed as crown and circle already show status */
-        }
-
-        .tier-lideranca .tier-badge {
-            background: linear-gradient(to right, var(--elite-gold), var(--elite-gold-light));
-            color: #000;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
-            border: none;
-        }
-
-        .crown-icon {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
         }
 
         .member-info {
@@ -366,7 +297,6 @@ $sections = array(
             color: #fff;
             margin: 0 0 10px 0;
             font-weight: 700;
-            letter-spacing: -0.5px;
         }
 
         .tier-lideranca .member-name {
@@ -374,7 +304,6 @@ $sections = array(
             background: linear-gradient(to right, #fff, var(--elite-gold-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
         .member-role {
@@ -384,10 +313,6 @@ $sections = array(
             font-size: 0.8rem;
             letter-spacing: 2px;
             margin-bottom: 20px;
-        }
-
-        .member-instagram {
-            margin-bottom: 25px;
         }
 
         .member-instagram a {
@@ -403,13 +328,13 @@ $sections = array(
             padding: 6px 15px;
             border-radius: 30px;
             background: rgba(255,255,255,0.03);
+            margin-bottom: 25px;
         }
 
         .member-instagram a:hover {
             color: var(--elite-gold);
             opacity: 1;
             border-color: var(--elite-gold);
-            background: rgba(212, 175, 55, 0.05);
         }
 
         .member-background {
@@ -428,30 +353,21 @@ $sections = array(
             color: #aaa;
         }
 
-        /* CONVIDADO TIER: Simpler */
-        .tier-convidado .member-card {
-            border-color: rgba(255,255,255,0.03);
-            background: transparent;
-        }
-        .tier-convidado .tier-badge {
-            color: var(--elite-silver);
-            border-color: var(--elite-silver);
+        @media (max-width: 1200px) {
+            .member-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 768px) {
+            .member-grid { grid-template-columns: 1fr; }
+            .academy-container { padding: 0 20px; }
             .academy-header h1 { font-size: 2.5rem; }
-            .member-grid, .tier-lideranca .member-grid { 
-                grid-template-columns: 1fr; 
-                max-width: 100%;
-            }
-            .tier-lideranca .member-name { font-size: 1.8rem; }
-            .tier-lideranca .member-photo-wrap {
-                width: 200px;
-                height: 200px;
-            }
+            .tier-lideranca .member-photo-wrap { width: 200px; height: 200px; }
         }
     </style>
+</head>
+<body>
 
+<div class="expressive-academy-team-page">
     <div class="academy-container">
         <!-- SVG Gradient Definitions -->
         <svg width="0" height="0" style="position:absolute">
@@ -490,7 +406,6 @@ $sections = array(
 
                                 <div class="member-photo-wrap">
                                     <?php if ($tier_id === 'lideranca') : ?>
-                                        <!-- Imposing Crown for Queens -->
                                         <div class="majestic-crown-wrap">
                                             <svg class="majestic-crown-svg" viewBox="0 0 100 80">
                                                 <path d="M10 70 L5 20 L30 45 L50 5 L70 45 L95 20 L90 70 Z" />
@@ -515,9 +430,7 @@ $sections = array(
                                     <?php if (!empty($member['instagram'])) : ?>
                                         <div class="member-instagram">
                                             <a href="https://instagram.com/<?php echo esc_attr($member['instagram']); ?>" target="_blank" rel="noopener noreferrer">
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true" style="width: 16px; height: 16px;">
-                                                    <path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 a4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" />
-                                                </svg> @<?php echo esc_html($member['instagram']); ?>
+                                                <svg style="width: 16px; height: 16px;" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 a4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" /></svg> @<?php echo esc_html($member['instagram']); ?>
                                             </a>
                                         </div>
                                     <?php endif; ?>
@@ -547,8 +460,6 @@ $sections = array(
     </div>
 </div>
 
-<?php 
-if ( ! isset( $is_shortcode ) || ! $is_shortcode ) {
-    get_footer();
-}
-?>
+<?php wp_footer(); ?>
+</body>
+</html>

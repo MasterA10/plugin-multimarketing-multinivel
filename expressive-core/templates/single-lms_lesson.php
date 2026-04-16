@@ -628,6 +628,5 @@ if ( ! is_array( $supporting_files ) ) $supporting_files = array();
 
 
 <?php wp_footer(); ?>
-<?php include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php'; ?>
 </body>
 </html>

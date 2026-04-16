@@ -94,6 +94,9 @@ class Expressive_Core {
 
 		// Auto-block new users for Elite Area
 		add_action( 'user_register', array( $this, 'auto_block_new_user' ) );
+
+		// Global Modal Injection (Certificate, Visitor Indicator)
+		add_action( 'wp_footer', array( $this, 'inject_global_modals' ) );
 	}
 
 	public function enqueue_admin_assets( $hook ) {
@@ -331,6 +334,21 @@ class Expressive_Core {
 		update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
 
 		Expressive_Logger::info( 'AUTH', "Novo usuário bloqueado e sincronizado via Central de Acesso", array( 'user_id' => $user_id ) );
+	}
+
+	/**
+	 * Inject Global Modals and Indicators into the footer.
+	 */
+	public function inject_global_modals() {
+		if ( ! is_admin() ) {
+			include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php';
+			include EXPRESSIVE_CORE_PATH . 'templates/parts/cert-modal.php';
+
+			// Referral Button for Educators
+			if ( is_user_logged_in() && class_exists('Expressive_Referral') && Expressive_Referral::is_educator( get_current_user_id() ) ) {
+				include EXPRESSIVE_CORE_PATH . 'templates/parts/referral-button.php';
+			}
+		}
 	}
 
 }

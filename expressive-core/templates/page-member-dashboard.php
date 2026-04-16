@@ -406,9 +406,9 @@ $visibility_meta_query = array(
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                             <span class="text-[9px] font-bold uppercase tracking-widest">Jornada 75%+ Concluída</span>
                                         </div>
-                                        <a href="<?php echo home_url('/certificado-elite'); ?>" target="_blank" class="inline-block bg-gradient-to-r from-gold-600 to-gold-400 text-black px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-gold-500/20 hover:scale-105 transition-all text-center">
+                                        <button onclick="showEliteCertModal(0, &quot;<?php echo wp_create_nonce('lms_view_cert'); ?>&quot;, 1)" class="w-full inline-block bg-gradient-to-r from-gold-600 to-gold-400 text-black px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-gold-500/20 hover:scale-105 transition-all text-center border-none cursor-pointer">
                                             Gerar Certificado
-                                        </a>
+                                        </button>
                                     </div>
                                 <?php else: ?>
                                     <div class="flex items-center gap-3 text-zinc-600 grayscale">
@@ -994,7 +994,6 @@ $visibility_meta_query = array(
                 </div>
 
                 <div class="space-y-3">
-                    <a href="<?php echo admin_url('profile.php'); ?>" class="w-full block py-4 bg-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/15 transition-all">Editar Perfil</a>
                     <a href="<?php echo wp_logout_url(); ?>" class="w-full block py-4 bg-red-500/10 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-all">Desconectar</a>
                 </div>
             </div>
@@ -1321,7 +1320,5 @@ $visibility_meta_query = array(
         .custom-scrollbar::-webkit-scrollbar { display: none !important; }
     </style>
     <?php wp_footer(); ?>
-    <?php include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php'; ?>
-    <?php include EXPRESSIVE_CORE_PATH . 'templates/parts/cert-modal.php'; ?>
 </body>
 </html>

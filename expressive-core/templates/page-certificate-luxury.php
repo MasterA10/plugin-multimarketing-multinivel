@@ -144,22 +144,23 @@
         /* Dynamic Student Name Handling */
         .name-container {
             width: 100%;
-            max-width: 850px;
+            max-width: 1020px;
             margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .student-name {
             font-family: 'Playfair Display', serif;
-            /* Scalable font size for long names */
-            font-size: clamp(2.2rem, 6vw, 4.4rem); 
+            font-size: 5.5rem; 
             color: #fff;
             font-style: italic;
             display: inline-block;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
             text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+            transform-origin: center;
         }
 
         .name-line {
@@ -334,9 +335,9 @@
             <p class="award-text">Concedemos solenemente a titularidade a</p>
             
             <div class="name-container">
-                <div class="student-name"><?php echo esc_html( $user_data->display_name ); ?></div>
-                <div class="name-line"></div>
+                <div class="student-name" id="student-name-text"><?php echo esc_html( $display_name ); ?></div>
             </div>
+            <div class="name-line"></div>
 
             <p class="course-label">Pela conclusão da formação oficial de maestria em</p>
             <div class="course-title"><?php echo esc_html( $course_title ); ?></div>
@@ -361,30 +362,37 @@
                 </svg>
             </div>
 
-            <footer class="cert-footer">
-                <div class="signature-group">
-                    <div class="signature-svg-box">
-                        <!-- Assinatura Removida -->
-                    </div>
-                    <div class="signature-line">
-                        <div class="signature-name">Cátia Araújo</div>
-                        <div class="signature-role">Diretora Acadêmica</div>
-                    </div>
-                </div>
-                <div class="signature-group">
-                    <div class="signature-svg-box">
-                        <!-- Assinatura Removida -->
-                    </div>
-                    <div class="signature-line">
-                        <div class="signature-name">Juliana Parra</div>
-                        <div class="signature-role">CEO Expressive Brazil</div>
-                    </div>
-                </div>
-            </footer>
+            <!-- Signatures Removed by Design Specification -->
 
             <div class="meta-bottom">Validade Internacional &bull; Data de Outorga: <?php echo $date; ?></div>
         </div>
     </div>
 
+    <script>
+        /**
+         * Student Name Auto-Fit Logic
+         * Dynamically scales the name if it exceeds the 1020px container.
+         */
+        function autoFitStudentName() {
+            const container = document.querySelector('.name-container');
+            const nameText = document.getElementById('student-name-text');
+            
+            if (!container || !nameText) return;
+
+            const containerWidth = container.offsetWidth;
+            const textWidth = nameText.scrollWidth;
+
+            if (textWidth > containerWidth) {
+                const scale = containerWidth / (textWidth + 20); // 20px buffer
+                nameText.style.transform = `scale(${scale})`;
+            }
+        }
+
+        // Run on load and after fonts are ready
+        window.addEventListener('load', autoFitStudentName);
+        if (document.fonts) {
+            document.fonts.ready.then(autoFitStudentName);
+        }
+    </script>
 </body>
 </html>

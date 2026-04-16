@@ -1,86 +1,123 @@
 <?php
 /**
- * Elite Certificate Modal - REFINED LUXURY VERSION
- * Shows a congratulations message and download link when the user hits a milestone.
+ * Elite Certificate Modal - Name Confirmation
+ * Shows a name input for the student to confirm before generating the certificate.
  */
 $user_id = get_current_user_id();
 $user_data = get_userdata($user_id);
+if (!$user_data) return;
 ?>
 
-<div id="elite-cert-modal" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-2xl hidden flex items-center justify-center p-6 text-center animate-fade-in">
-    <div class="max-w-2xl w-full glass p-10 md:p-16 rounded-[60px] border border-gold-500/30 shadow-2xl relative overflow-hidden group">
-        <!-- Background Effects -->
-        <div class="absolute -top-24 -right-24 w-64 h-64 bg-gold-500/10 rounded-full blur-[100px] group-hover:bg-gold-500/20 transition-all duration-1000"></div>
-        <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-gold-500/5 rounded-full blur-[100px]"></div>
+<div id="elite-cert-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.92); backdrop-filter:blur(24px); align-items:center; justify-content:center; padding:24px; text-align:center; transition:opacity 0.3s ease; opacity:0;">
+    <div style="max-width:600px; width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(212,175,55,0.3); border-radius:40px; padding:60px 40px; position:relative; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.6);">
+        <!-- Background Glow -->
+        <div style="position:absolute; top:-60px; right:-60px; width:200px; height:200px; background:rgba(212,175,55,0.08); border-radius:50%; filter:blur(80px); pointer-events:none;"></div>
 
-        <div class="relative z-10 space-y-10">
-            <!-- Achievement Icon -->
-            <div class="relative w-32 h-32 mx-auto">
-                <div class="absolute inset-0 bg-gold-500/20 rounded-full animate-ping opacity-20"></div>
-                <div class="w-32 h-32 bg-gold-500/10 rounded-full flex items-center justify-center border border-gold-500/30 shadow-2xl shadow-gold-500/20 relative">
-                    <svg class="w-16 h-16 text-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                    </svg>
-                </div>
-            </div>
+        <!-- Achievement Icon -->
+        <div style="width:100px; height:100px; margin:0 auto 30px; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <svg style="width:50px; height:50px; color:#D4AF37;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+            </svg>
+        </div>
 
-            <div class="space-y-4">
-                <span class="text-[10px] text-gold-500 uppercase tracking-[0.5em] font-bold">Maestria Alcançada</span>
-                <h2 class="text-4xl md:text-5xl font-serif italic text-white leading-tight">Parabéns, <br> <span class="text-gold-500"><?php echo esc_html($user_data->first_name ?: $user_data->display_name); ?>!</span></h2>
-                <p class="text-zinc-500 text-sm leading-relaxed max-w-sm mx-auto font-light">
-                    Sua dedicação o levou a completar mais de <span class="text-white font-medium">75% da jornada</span>. Seu certificado de especialização Gran Master já está disponível para outorga.
-                </p>
-            </div>
+        <!-- Text -->
+        <div style="margin-bottom:30px;">
+            <p style="font-size:10px; color:#D4AF37; text-transform:uppercase; letter-spacing:0.5em; font-weight:700; margin-bottom:16px; font-family:'Outfit',sans-serif;">Maestria Alcançada</p>
+            <h2 style="font-size:2.2rem; font-family:'Playfair Display',serif; font-style:italic; color:#fff; margin:0 0 12px; line-height:1.2;">Parabéns, <span style="color:#D4AF37;"><?php echo esc_html($user_data->first_name ?: $user_data->display_name); ?>!</span></h2>
+            <p style="font-size:13px; color:#888; max-width:360px; margin:0 auto; line-height:1.6; font-family:'Outfit',sans-serif;">
+                Confirme seu nome completo abaixo.<br>Este será o nome impresso no certificado.
+            </p>
+        </div>
 
-            <!-- Certificate Preview Card (Minimalist) -->
-            <div class="bg-black/40 border border-white/5 p-6 rounded-3xl group/card relative overflow-hidden transition-all hover:border-gold-500/20">
-                <div class="flex items-center gap-6">
-                    <div class="w-20 aspect-[4/3] bg-zinc-900 rounded-lg border border-white/10 flex items-center justify-center">
-                        <svg class="w-8 h-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    </div>
-                    <div class="text-left">
-                        <h4 class="text-xs font-bold text-white uppercase tracking-widest">Credencial Gran Master</h4>
-                        <p class="text-[9px] text-zinc-600 uppercase tracking-widest mt-1">Válido Internacionalmente</p>
-                    </div>
-                </div>
-            </div>
+        <!-- Name Input -->
+        <div style="max-width:400px; margin:0 auto 30px; position:relative;">
+            <input type="text" id="elite-cert-student-name" 
+                   value="<?php echo esc_attr($user_data->display_name); ?>"
+                   style="width:100%; box-sizing:border-box; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:16px 24px; color:#fff; text-align:center; font-family:'Playfair Display',serif; font-style:italic; font-size:18px; outline:none; transition:border-color 0.3s;"
+                   onfocus="this.style.borderColor='rgba(212,175,55,0.5)'"
+                   onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                   placeholder="Seu Nome Completo">
+        </div>
 
-            <div class="pt-6 space-y-4">
-                <button id="elite-download-cert-btn" class="block w-full py-5 bg-gold-500 text-black font-black uppercase tracking-[0.2em] text-xs rounded-2xl hover:bg-white hover:scale-[1.02] transition-all shadow-xl shadow-gold-500/20 cursor-pointer">
-                    Baixar Meu Certificado
-                </button>
-                <button onclick="closeCertModal()" class="text-[10px] text-zinc-600 hover:text-white uppercase tracking-widest block mx-auto transition-colors">
-                    Continuar Estudando
-                </button>
-            </div>
+        <!-- Buttons -->
+        <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+            <button id="elite-download-cert-btn" style="width:100%; max-width:400px; padding:18px; background:#D4AF37; color:#000; border:none; border-radius:16px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em; cursor:pointer; box-shadow:0 10px 30px rgba(212,175,55,0.2); transition:all 0.3s; font-family:'Outfit',sans-serif;">
+                Emitir Certificado Agora
+            </button>
+            <button onclick="closeCertModal()" style="background:none; border:none; color:#666; font-size:10px; text-transform:uppercase; letter-spacing:0.15em; cursor:pointer; padding:8px; transition:color 0.3s; font-family:'Outfit',sans-serif;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#666'">
+                Continuar Estudando
+            </button>
         </div>
     </div>
 </div>
 
 <script>
 function closeCertModal() {
-    const modal = document.getElementById('elite-cert-modal');
-    modal.classList.remove('opacity-100');
-    modal.classList.add('opacity-0');
-    setTimeout(() => {
-        modal.classList.add('hidden');
+    var modal = document.getElementById('elite-cert-modal');
+    if (!modal) return;
+    modal.style.opacity = '0';
+    setTimeout(function() {
+        modal.style.display = 'none';
         document.body.style.overflow = '';
     }, 300);
 }
 
-function showCertModal(courseId, nonce) {
-    const modal = document.getElementById('elite-cert-modal');
-    const downloadBtn = document.getElementById('elite-download-cert-btn');
-    
-    // Update download link
+/**
+ * Global function to show certificate confirmation modal.
+ * @param {number} id - Course ID (0 for global)
+ * @param {string} nonce - WP nonce
+ * @param {number} type - 0 = course cert, 1 = global cert
+ */
+function showEliteCertModal(id, nonce, type) {
+    var modal = document.getElementById('elite-cert-modal');
+    var downloadBtn = document.getElementById('elite-download-cert-btn');
+    var nameInput = document.getElementById('elite-cert-student-name');
+
+    if (!modal || !downloadBtn || !nameInput) {
+        console.error('Elite Cert Modal: Elements not found');
+        return;
+    }
+
+    type = type || 0;
+
+    // Show the modal
+    modal.style.display = 'flex';
+    // Force reflow before transition
+    modal.offsetHeight;
+    modal.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+
+    // Bind download action
     downloadBtn.onclick = function() {
-        const url = `<?php echo site_url(); ?>/?lms_action=view_certificate&course_id=${courseId}&nonce=${nonce}`;
+        var studentName = encodeURIComponent(nameInput.value.trim());
+        if (!studentName) {
+            nameInput.style.borderColor = 'red';
+            nameInput.focus();
+            return;
+        }
+        var baseUrl = '<?php echo esc_url(site_url()); ?>';
+        var url = '';
+
+        if (type === 0) {
+            url = baseUrl + '/?lms_action=view_certificate&course_id=' + id + '&nonce=' + nonce + '&student_name=' + studentName;
+        } else {
+            url = baseUrl + '/certificado-elite/?nonce=' + nonce + '&student_name=' + studentName;
+        }
+
         window.open(url, '_blank');
         closeCertModal();
     };
-
-    modal.classList.remove('hidden', 'opacity-0');
-    modal.classList.add('opacity-100');
-    document.body.style.overflow = 'hidden';
 }
+
+// Close modal on backdrop click
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('elite-cert-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeCertModal();
+            }
+        });
+    }
+});
 </script>

@@ -49,13 +49,32 @@ class Expressive_Logger {
 
 		self::$log_file = $log_dir . '/elite-debug.log';
 		self::$initialized = true;
+
+		// Catch Fatal Errors (Black Box)
+		register_shutdown_function( array( __CLASS__, 'handle_fatal_error' ) );
+	}
+
+	/**
+	 * Detects and logs the last PHP fatal error during script shutdown.
+	 */
+	public static function handle_fatal_error() {
+		$error = error_get_last();
+		if ( $error && in_array( $error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ) ) ) {
+			self::error( 'DIAGNOSTIC', "FALHA CRÍTICA (PHP Fatal Error) detectada no encerramento.", array(
+				'type'    => $error['type'],
+				'message' => $error['message'],
+				'file'    => $error['file'],
+				'line'    => $error['line'],
+				'url'     => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : 'CLI'
+			) );
+		}
 	}
 
 	/**
 	 * Grava uma entrada de log.
 	 *
 	 * @param string $level    Nível: INFO, WARNING, ERROR, DEBUG
-	 * @param string $category Categoria: ACCESS, ENGINE, REFERRAL, API, GAMIFY, AUTH, CERT, CORE, DISCOUNT
+	 * @param string $category Categoria: ACCESS, ENGINE, REFERRAL, API, GAMIFY, AUTH, CERT, CORE, DISCOUNT, DIAGNOSTIC
 	 * @param string $message  Mensagem descritiva
 	 * @param array  $context  Dados adicionais (serão serializados como JSON)
 	 */
@@ -161,6 +180,34 @@ class Expressive_Logger {
 		add_action( 'wp_logout', array( __CLASS__, 'log_logout' ) );
 		add_action( 'user_register', array( __CLASS__, 'log_registration' ) );
 		add_action( 'profile_update', array( __CLASS__, 'log_profile_update' ), 10, 2 );
+
+		// Advanced Diagnostics
+		add_action( 'wp_mail_failed', array( __CLASS__, 'log_mail_failed' ) );
+		add_action( 'switch_theme', array( __CLASS__, 'log_theme_change' ), 10, 3 );
+		add_action( 'upgrader_process_complete', array( __CLASS__, 'log_system_update' ), 10, 2 );
+	}
+
+	public static function log_mail_failed( $wp_error ) {
+		self::error( 'DIAGNOSTIC', "Falha no envio de e-mail (wp_mail_failed)", array(
+			'error' => $wp_error->get_error_message(),
+			'data'  => $wp_error->get_error_data()
+		) );
+	}
+
+	public static function log_theme_change( $new_name, $new_theme, $old_theme ) {
+		self::warning( 'DIAGNOSTIC', "Alteração de tema detectada no ambiente", array(
+			'new' => $new_name,
+			'old' => $old_theme->get_name()
+		) );
+	}
+
+	public static function log_system_update( $upgrader, $options ) {
+		if ( isset( $options['action'] ) && $options['action'] === 'update' ) {
+			self::info( 'DIAGNOSTIC', "Atualização de sistema concluída", array(
+				'type' => isset($options['type']) ? $options['type'] : 'unknown',
+				'item' => isset($options['plugins']) ? $options['plugins'] : (isset($options['theme']) ? $options['theme'] : 'bulk')
+			) );
+		}
 	}
 
 	public static function log_login( $user_login, $user ) {

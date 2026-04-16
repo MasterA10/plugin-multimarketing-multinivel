@@ -340,6 +340,5 @@ $has_access = $access_checker->has_active_subscription(get_current_user_id());
 </script>
 
 <?php wp_footer(); ?>
-<?php include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php'; ?>
 </body>
 </html>

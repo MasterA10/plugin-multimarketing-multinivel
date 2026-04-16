@@ -60,8 +60,10 @@ class Expressive_Certificate {
 			'nonce'      => wp_create_nonce( 'lms_view_cert' )
 		), site_url() );
 
+		// We now trigger the global confirmation modal
+		$nonce = wp_create_nonce( 'lms_view_cert' );
 		$output = '<p style="color: #D4AF37; font-size: 0.9rem; text-align: center; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.1em;">Parabéns! Você superou os 75% da jornada.</p>';
-		$output .= '<a href="' . esc_url( $url ) . '" target="_blank" class="elite-cert-btn" style="display: block; width: 100%; text-align: center; background: #D4AF37; color: #000; padding: 18px 24px; border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; text-decoration: none; box-shadow: 0 10px 25px rgba(212, 175, 55, 0.2); transition: all 0.3s ease;">🏆 Baixar Certificado de Especialista</a>';
+		$output .= '<button onclick="showEliteCertModal(' . intval($course_id) . ', &quot;' . esc_attr($nonce) . '&quot;, 0)" class="elite-cert-btn" style="display: block; width: 100%; text-align: center; background: #D4AF37; color: #000; padding: 18px 24px; border-radius: 12px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; border: none; cursor: pointer; box-shadow: 0 10px 25px rgba(212, 175, 55, 0.2); transition: all 0.3s ease;">🏆 Baixar Certificado de Especialista</button>';
 		
 		return $output;
 	}
@@ -88,6 +90,9 @@ class Expressive_Certificate {
 		$user_data = get_userdata( $user_id );
 		$course_title = get_the_title( $course_id );
 		$date = date( 'd/m/Y' );
+
+		// Custom Student Name support
+		$display_name = ! empty( $_GET['student_name'] ) ? sanitize_text_field( $_GET['student_name'] ) : $user_data->display_name;
 
 		Expressive_Logger::info( 'CERT', "Certificado de curso gerado", array( 'user_id' => $user_id, 'course_id' => $course_id, 'course' => $course_title ) );
 
@@ -119,6 +124,9 @@ class Expressive_Certificate {
 
 		$course_title = "FORMAÇÃO ELITE SPECIALIST";
 		$date = date( 'd/m/Y' );
+
+		// Custom Student Name support
+		$display_name = ! empty( $_GET['student_name'] ) ? sanitize_text_field( $_GET['student_name'] ) : $user_data->display_name;
 
 		Expressive_Logger::info( 'CERT', "Certificado global de Elite gerado", array( 'user_id' => $user_id, 'progress' => $pct . '%' ) );
 
