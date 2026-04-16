@@ -7,6 +7,7 @@ class Expressive_Public {
 		add_shortcode( 'expressive_login', array( $this, 'render_login_form' ) );
 		add_shortcode( 'expressive_dashboard', array( $this, 'render_member_dashboard' ) );
 		add_shortcode( 'lms_leaderboard', array( $this, 'render_leaderboard' ) );
+		add_shortcode( 'pmu_academy_team', array( $this, 'render_academy_team' ) );
 
 		// Checkout hooks
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'display_referrer_at_checkout_hook' ) );
@@ -241,6 +242,25 @@ class Expressive_Public {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Shortcode to render the Academy Team
+	 */
+	public function render_academy_team() {
+		$template_path = EXPRESSIVE_CORE_PATH . 'templates/page-academy-team.php';
+		
+		if ( ! file_exists( $template_path ) ) {
+			return '<p>Template da academia não encontrado.</p>';
+		}
+
+		ob_start();
+		
+		// Set a flag to tell the template NOT to call get_header/get_footer if included via shortcode
+		$is_shortcode = true;
+		include $template_path;
+		
+		return ob_get_clean();
 	}
 
 }

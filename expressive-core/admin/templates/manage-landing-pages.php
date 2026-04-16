@@ -18,6 +18,11 @@ $lp_query = new WP_Query( array(
                 <h1 class="text-4xl font-bold bg-gradient-to-r from-gold-400 via-gold-500 to-gold-600 bg-clip-text text-transparent">Elite Landing Pages</h1>
                 <p class="text-white/40 mt-1 uppercase tracking-[0.2em] text-xs">Páginas de Alta Conversão & Design Premium</p>
             </div>
+            <a href="<?php echo admin_url('admin.php?page=elite-pages&action=new'); ?>" 
+               class="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-black px-8 py-4 rounded-2xl font-bold transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(212,175,55,0.3)] flex items-center gap-3">
+                <span class="dashicons dashicons-plus-alt" style="margin-top: 4px;"></span>
+                Nova Página Elite
+            </a>
         </div>
 
         <?php if ( $status === 'saved' ): ?>
@@ -64,9 +69,13 @@ $lp_query = new WP_Query( array(
 
                         <div class="flex gap-4 pt-4">
                             <a href="<?php echo admin_url('admin.php?page=elite-pages&action=edit&post_id=' . get_the_ID()); ?>" 
-                               class="flex-1 bg-gradient-to-r from-gold-500/20 to-gold-600/20 hover:from-gold-500/30 hover:to-gold-600/30 border border-gold-500/30 text-white text-center py-4 rounded-xl text-xs font-bold transition-all uppercase tracking-widest">
-                                <span class="dashicons dashicons-admin-tools mr-2" style="font-size: 16px;"></span>
-                                Configurar Design
+                               class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-center py-3 rounded-xl text-xs font-bold transition-all uppercase tracking-widest">
+                                Configurar
+                            </a>
+                            <a href="<?php echo wp_nonce_url( admin_url('admin-post.php?action=lms_delete_lp&post_id=' . get_the_ID()), 'lms_delete_content_nonce' ); ?>" 
+                               onclick="return confirm('Tem certeza que deseja excluir esta página?')"
+                               class="px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 py-3 rounded-xl transition-all">
+                                <span class="dashicons dashicons-trash" style="margin-top: 5px;"></span>
                             </a>
                         </div>
                     </div>

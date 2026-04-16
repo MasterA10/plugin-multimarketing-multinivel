@@ -5,18 +5,7 @@
  */
 
 if ( ! isset( $is_shortcode ) || ! $is_shortcode ) {
-    ?>
-    <!DOCTYPE html>
-    <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Equipe Academia - CCP Academy Beauty</title>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-        <?php wp_head(); ?>
-    </head>
-    <body <?php body_class(); ?>>
-    <?php
+    get_header();
 }
 
 // Fetch all members
@@ -560,10 +549,6 @@ $sections = array(
 
 <?php 
 if ( ! isset( $is_shortcode ) || ! $is_shortcode ) {
-    wp_footer();
-    ?>
-    </body>
-    </html>
-    <?php
+    get_footer();
 }
 ?>

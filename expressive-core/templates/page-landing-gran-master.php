@@ -50,7 +50,6 @@ function get_elite_button($section_key, $buttons, $default_label) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Inter:wght@200;400;600&family=Outfit:wght@300;600&display=swap" rel="stylesheet">
-    <?php wp_head(); ?>
     <style>
         :root {
             --gold: #c5a059;
@@ -690,6 +689,5 @@ function get_elite_button($section_key, $buttons, $default_label) {
         });
     </script>
 
-    <?php wp_footer(); ?>
 </body>
 </html>

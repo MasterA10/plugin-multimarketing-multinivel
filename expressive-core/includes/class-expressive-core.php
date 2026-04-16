@@ -50,10 +50,17 @@ class Expressive_Core {
 		add_action( 'add_meta_boxes', array( $cpt, 'add_lesson_meta_boxes' ) );
 		add_action( 'save_post', array( $cpt, 'save_lesson_meta_data' ) );
 		add_action( 'save_post', array( $cpt, 'save_visibility_meta_data' ) );
+		add_action( 'save_post', array( $cpt, 'save_academy_member_meta_data' ) );
 		add_action( 'admin_menu', array( $settings, 'register_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'admin_post_lms_save_elite_content', array( $settings, 'handle_elite_editor_save' ) );
 		add_action( 'admin_post_lms_delete_elite_content', array( $settings, 'handle_elite_content_delete' ) );
+		add_action( 'admin_post_lms_save_academy_member', array( $settings, 'handle_academy_member_save' ) );
+		add_action( 'admin_post_lms_delete_academy_member', array( $settings, 'handle_delete_academy_member' ) );
+		add_action( 'admin_post_lms_save_bio', array( $settings, 'handle_link_bio_save' ) );
+		add_action( 'admin_post_lms_delete_bio', array( $settings, 'handle_link_bio_delete' ) );
+		add_action( 'admin_post_lms_save_lp', array( $settings, 'handle_landing_page_save' ) );
+		add_action( 'admin_post_lms_delete_lp', array( $settings, 'handle_landing_page_delete' ) );
 		add_action( 'wp_ajax_lms_update_module_and_lesson_order', array( $settings, 'ajax_update_module_and_lesson_order' ) );
 
 		// Middleware & Engine
@@ -89,11 +96,9 @@ class Expressive_Core {
 	}
 
 	public function enqueue_admin_assets( $hook ) {
-		// Only load on our custom pages to be efficient
+		// Load assets for any Elite LMS related page
 		if ( strpos( $hook, 'expressive-lms' ) === false && 
-			 strpos( $hook, 'elite-content' ) === false && 
-			 strpos( $hook, 'elite-calendar' ) === false && 
-			 strpos( $hook, 'elite-settings' ) === false ) {
+             strpos( $hook, 'elite-' ) === false ) {
 			return;
 		}
 
@@ -121,6 +126,25 @@ class Expressive_Core {
 	}
 
 	public function template_loader( $template ) {
+		if ( is_singular( 'elite_links' ) ) {
+			return EXPRESSIVE_CORE_PATH . 'templates/page-link-bio.php';
+		}
+
+		if ( is_singular( 'elite_lp' ) ) {
+			$post_id = get_the_ID();
+			$template_type = get_post_meta($post_id, '_elite_lp_template', true) ?: 'gran-master';
+			
+			if ($template_type === 'gala') {
+				return EXPRESSIVE_CORE_PATH . 'templates/page-landing-gala.php';
+			}
+
+			if ($template_type === 'ccp-academy') {
+				return EXPRESSIVE_CORE_PATH . 'templates/page-landing-ccp.php';
+			}
+			
+			return EXPRESSIVE_CORE_PATH . 'templates/page-landing-gran-master.php';
+		}
+
 		if ( is_singular( 'lms_lesson' ) ) {
 			$new_template = EXPRESSIVE_CORE_PATH . 'templates/single-lms_lesson.php';
 			if ( file_exists( $new_template ) ) {
@@ -178,9 +202,15 @@ class Expressive_Core {
 					return $custom_template;
 				}
 			}
+
 		}
 
-		// Handle Certificate Global Route (User custom request)
+		// Academy Auto-Slug Matching
+		if ( strpos( $_SERVER['REQUEST_URI'], 'equipe-academia' ) !== false || strpos( $_SERVER['REQUEST_URI'], 'academia-pmu' ) !== false ) {
+			return EXPRESSIVE_CORE_PATH . 'templates/page-academy-team.php';
+		}
+
+		// Handle Certificate Global Route
 		if ( strpos( $_SERVER['REQUEST_URI'], 'certificado-elite' ) !== false ) {
 			$cert = new Expressive_Certificate();
 			$cert->handle_global_certificate_view();
@@ -192,9 +222,9 @@ class Expressive_Core {
 
 	public function init() {
 		// Flush rules once to fix broken links requested by user
-		if ( get_option( 'lms_needs_flush_v2' ) !== 'no' ) {
+		if ( get_option( 'lms_needs_flush_v5' ) !== 'no' ) {
 			flush_rewrite_rules();
-			update_option( 'lms_needs_flush_v2', 'no' );
+			update_option( 'lms_needs_flush_v5', 'no' );
 		}
 
 		// --- WP CRON: Sincronização Periódica da API ---

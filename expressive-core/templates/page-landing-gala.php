@@ -52,7 +52,6 @@ function get_elite_button($section_key, $buttons, $default_label) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Inter:wght@200;400;600&family=Outfit:wght@300;600&display=swap" rel="stylesheet">
-    <?php wp_head(); ?>
     <style>
         :root {
             --gold: #c5a059;
@@ -384,26 +383,14 @@ function get_elite_button($section_key, $buttons, $default_label) {
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
                 <?php 
-                $team_data = [
-                    ["Juliana Parra (CEO)", "team_juliana"],
-                    ["Cátia Araújo", "team_catia"],
-                    ["Cley Fernandes", "team_cley"],
-                    ["Paty Batista", "team_paty"]
-                ];
-                foreach ($team_data as $member) : 
-                    $name = $member[0];
-                    $key  = $member[1];
-                    $member_media = isset($media[$key]) ? $media[$key] : array('ids' => array());
-                ?>
+                $team = ["Juliana Parra (CEO)", "Cátia Araújo", "Cley Fernandes", "Paty Batista"];
+                foreach ($team as $member) : ?>
                     <div class="space-y-4 text-center group">
-                        <div class="aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-[#c5a059] transition-all duration-500 scale-95 group-hover:scale-100 bg-white/[0.03]">
-                             <?php if (!empty($member_media['ids'])) : ?>
-                                <?php echo wp_get_attachment_image($member_media['ids'][0], 'medium', false, array('class' => 'w-full h-full object-cover')); ?>
-                             <?php else : ?>
-                                <div class="w-full h-full flex items-center justify-center text-[10px] text-white/20 italic">Foto</div>
-                             <?php endif; ?>
+                        <div class="aspect-square rounded-full overflow-hidden border-2 border-white/5 group-hover:border-[#c5a059] transition-all duration-500 scale-95 group-hover:scale-100">
+                             <!-- Space for team photos -->
+                             <div class="w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-white/20 italic">Foto</div>
                         </div>
-                        <h5 class="text-white font-bold uppercase tracking-widest text-[10px]"><?php echo $name; ?></h5>
+                        <h5 class="text-white font-bold uppercase tracking-widest text-[10px]"><?php echo $member; ?></h5>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -494,7 +481,6 @@ function get_elite_button($section_key, $buttons, $default_label) {
             });
         });
     </script>
-    
-    <?php wp_footer(); ?>
+
 </body>
 </html>

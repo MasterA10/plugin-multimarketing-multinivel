@@ -58,6 +58,45 @@ class Expressive_CPT {
 			'show_in_rest' => true,
 			'show_in_menu' => false, // Hidden from sidebar
 		) );
+
+		// Academy Members (Team)
+		register_post_type( 'academy_member', array(
+			'labels' => array(
+				'name'          => 'Membros da Academia',
+				'singular_name' => 'Membro da Academia',
+				'add_new'       => 'Adicionar Novo Membro',
+				'add_new_item'  => 'Adicionar Novo Membro da Academia',
+				'edit_item'     => 'Editar Membro da Academia',
+			),
+			'public'      => true,
+			'has_archive' => false,
+			'supports'    => array( 'title', 'editor', 'thumbnail' ), // Name, description, photo
+			'menu_icon'   => 'dashicons-groups',
+			'show_in_rest' => true,
+			'show_ui'               => true,
+			'show_in_menu'          => false,
+			'query_var'             => true,
+		) );
+
+		// Elite Landing Pages
+		register_post_type( 'elite_lp', array(
+			'labels' => array(
+				'name'          => 'Páginas Elite',
+				'singular_name' => 'Página Elite',
+				'add_new'       => 'Nova Página',
+				'add_new_item'  => 'Criar Nova Página Elite',
+				'edit_item'     => 'Configurar Página',
+			),
+			'public'      => true,
+			'has_archive' => false,
+			'supports'    => array( 'title' ),
+			'menu_icon'   => 'dashicons-layout',
+			'show_in_rest' => true,
+			'show_ui'      => true,
+			'show_in_menu' => false,
+			'query_var'    => true,
+			'rewrite'      => array( 'slug' => 'elite', 'with_front' => false ),
+		) );
 	}
 
 	public function add_lesson_meta_boxes() {
@@ -67,6 +106,16 @@ class Expressive_CPT {
 			'Detalhes da Aula',
 			array( $this, 'render_lesson_meta_box' ),
 			'lms_lesson',
+			'normal',
+			'high'
+		);
+
+		// Academy Member details
+		add_meta_box(
+			'academy_member_details',
+			'Detalhes do Membro',
+			array( $this, 'render_academy_member_meta_box' ),
+			'academy_member',
 			'normal',
 			'high'
 		);
@@ -269,6 +318,78 @@ class Expressive_CPT {
 
 		if ( isset( $_POST['lms_visibility_role'] ) ) {
 			update_post_meta( $post_id, '_lms_visibility_role', sanitize_text_field( $_POST['lms_visibility_role'] ) );
+		}
+	}
+
+	public function render_academy_member_meta_box( $post ) {
+		$role       = get_post_meta( $post->ID, '_academy_member_role', true );
+		$background = get_post_meta( $post->ID, '_academy_member_background', true );
+		$tier       = get_post_meta( $post->ID, '_academy_member_tier', true ) ?: 'convidado';
+		
+		wp_nonce_field( 'academy_member_meta_box_nonce', 'academy_member_meta_box_nonce' );
+		?>
+		<div class="academy-meta-box-wrap">
+			<style>
+				.academy-meta-box-field { margin-bottom: 20px; }
+				.academy-meta-box-field label { display: block; font-weight: bold; margin-bottom: 5px; }
+				.academy-meta-box-field input, .academy-meta-box-field select, .academy-meta-box-field textarea { width: 100%; }
+			</style>
+			
+			<div class="academy-meta-box-field">
+				<label for="academy_member_role">Cargo / Importância:</label>
+				<input type="text" name="academy_member_role" id="academy_member_role" value="<?php echo esc_attr( $role ); ?>" placeholder="Ex: CEO & Fundadora, Palestrante Internacional">
+			</div>
+
+			<div class="academy-meta-box-field">
+				<label for="academy_member_instagram">Instagram (@):</label>
+				<input type="text" name="academy_member_instagram" id="academy_member_instagram" value="<?php echo esc_attr( get_post_meta( $post->ID, '_academy_member_instagram', true ) ); ?>" placeholder="Ex: alexalves.pmu">
+			</div>
+
+			<div class="academy-meta-box-field">
+				<label for="academy_member_tier">Nível / Categoria:</label>
+				<select name="academy_member_tier" id="academy_member_tier">
+					<option value="lideranca" <?php selected( $tier, 'lideranca' ); ?>>Direção e Liderança</option>
+					<option value="grandmaster" <?php selected( $tier, 'grandmaster' ); ?>>Educadores Grand Master Diamantes</option>
+					<option value="convidado" <?php selected( $tier, 'convidado' ); ?>>Educadores Convidados</option>
+				</select>
+			</div>
+
+			<div class="academy-meta-box-field">
+				<label for="academy_member_background">Formação / Educação:</label>
+				<textarea name="academy_member_background" id="academy_member_background" rows="3"><?php echo esc_textarea( $background ); ?></textarea>
+			</div>
+		</div>
+		<?php
+	}
+
+	public function save_academy_member_meta_data( $post_id ) {
+		if ( ! isset( $_POST['academy_member_meta_box_nonce'] ) || ! wp_verify_nonce( $_POST['academy_member_meta_box_nonce'], 'academy_member_meta_box_nonce' ) ) {
+			return;
+		}
+
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		if ( isset( $_POST['academy_member_role'] ) ) {
+			update_post_meta( $post_id, '_academy_member_role', sanitize_text_field( $_POST['academy_member_role'] ) );
+		}
+
+		if ( isset( $_POST['academy_member_background'] ) ) {
+			update_post_meta( $post_id, '_academy_member_background', sanitize_textarea_field( $_POST['academy_member_background'] ) );
+		}
+
+		if ( isset( $_POST['academy_member_instagram'] ) ) {
+			$insta = ltrim( sanitize_text_field( $_POST['academy_member_instagram'] ), '@' );
+			update_post_meta( $post_id, '_academy_member_instagram', $insta );
+		}
+
+		if ( isset( $_POST['academy_member_tier'] ) ) {
+			update_post_meta( $post_id, '_academy_member_tier', sanitize_text_field( $_POST['academy_member_tier'] ) );
 		}
 	}
 

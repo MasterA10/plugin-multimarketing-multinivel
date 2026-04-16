@@ -44,6 +44,33 @@ class Expressive_Admin_Settings {
 
 		add_submenu_page(
 			'expressive-lms',
+			'Membros da Academia',
+			'Equipe Academia',
+			'manage_options',
+			'elite-academy',
+			array( $this, 'render_admin_hub' )
+		);
+
+		add_submenu_page(
+			'expressive-lms',
+			'Elite Link Hub',
+			'Link Hub (Bio)',
+			'manage_options',
+			'elite-links',
+			array( $this, 'render_admin_hub' )
+		);
+
+		add_submenu_page(
+			'expressive-lms',
+			'Elite Landing Pages',
+			'Páginas Elite (LP)',
+			'manage_options',
+			'elite-pages',
+			array( $this, 'render_admin_hub' )
+		);
+
+		add_submenu_page(
+			'expressive-lms',
 			'Configurações do Ciclo',
 			'Marco Zero / Gamif.',
 			'manage_options',
@@ -120,11 +147,25 @@ class Expressive_Admin_Settings {
 
 		// Route to Editor/Curriculum if action is set
 		if ( $action === 'edit' || $action === 'new' ) {
-			$template = EXPRESSIVE_CORE_PATH . 'admin/templates/edit-content.php';
+			if ( $page === 'elite-academy' || (isset($_GET['type']) && $_GET['type'] === 'academy_member') ) {
+				$template = EXPRESSIVE_CORE_PATH . 'admin/templates/edit-academy-member.php';
+			} elseif ( $page === 'elite-links' || (isset($_GET['type']) && $_GET['type'] === 'elite_links') ) {
+				$template = EXPRESSIVE_CORE_PATH . 'admin/templates/edit-link-page.php';
+			} elseif ( $page === 'elite-pages' || (isset($_GET['type']) && $_GET['type'] === 'elite_lp') ) {
+				$template = EXPRESSIVE_CORE_PATH . 'admin/templates/edit-landing-page.php';
+			} else {
+				$template = EXPRESSIVE_CORE_PATH . 'admin/templates/edit-content.php';
+			}
 		} elseif ( $action === 'curriculum' ) {
 			$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-curriculum.php';
 		} else {
 			switch ( $page ) {
+				case 'elite-links':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-links.php';
+					break;
+				case 'elite-pages':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-landing-pages.php';
+					break;
 				case 'elite-content':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-content.php';
 					break;
@@ -145,6 +186,9 @@ class Expressive_Admin_Settings {
 					break;
 				case 'elite-logs':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/view-logs.php';
+					break;
+				case 'elite-academy':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-academy.php';
 					break;
 				default:
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/dashboard-admin.php';
@@ -363,22 +407,72 @@ class Expressive_Admin_Settings {
 	/**
 	 * Helper: Extract YouTube ID from URL or Raw ID
 	 */
-	private function extract_youtube_id( $input ) {
-		$input = trim( $input );
-		
-		// Regex for common YouTube URL patterns
-		$pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i';
-		
-		if ( preg_match( $pattern, $input, $matches ) ) {
+	public function extract_youtube_id( $url ) {
+		$pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i';
+		if ( preg_match( $pattern, $url, $matches ) ) {
 			return $matches[1];
 		}
-		
-		// Fallback for raw ID if it matches 11 char standard
-		if ( preg_match( '/^[a-zA-Z0-9_-]{11}$/', $input ) ) {
-			return $input;
+		return $url;
+	}
+
+	public function handle_academy_member_save() {
+		if ( ! isset( $_POST['lms_nonce'] ) || ! wp_verify_nonce( $_POST['lms_nonce'], 'lms_save_elite_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
 		}
 
-		return sanitize_text_field( $input );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id   = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$redirect  = 'elite-academy';
+
+		$post_data = array(
+			'post_title'   => sanitize_text_field( $_POST['post_title'] ),
+			'post_content' => wp_kses_post( $_POST['post_content'] ),
+			'post_status'  => sanitize_text_field( $_POST['post_status'] ),
+			'post_type'    => 'academy_member',
+		);
+
+		if ( $post_id > 0 ) {
+			$post_data['ID'] = $post_id;
+			wp_update_post( $post_data );
+		} else {
+			$post_id = wp_insert_post( $post_data );
+		}
+
+		// Custom Meta
+		update_post_meta( $post_id, '_academy_member_role', sanitize_text_field( $_POST['academy_member_role'] ) );
+		update_post_meta( $post_id, '_academy_member_background', sanitize_textarea_field( $_POST['academy_member_background'] ) );
+		update_post_meta( $post_id, '_academy_member_tier', sanitize_text_field( $_POST['academy_member_tier'] ) );
+		
+		$insta = ltrim( sanitize_text_field( $_POST['academy_member_instagram'] ), '@' );
+		update_post_meta( $post_id, '_academy_member_instagram', $insta );
+
+		if ( isset( $_POST['_thumbnail_id'] ) ) {
+			set_post_thumbnail( $post_id, intval( $_POST['_thumbnail_id'] ) );
+		}
+
+		wp_redirect( admin_url( 'admin.php?page=' . $redirect . '&status=saved' ) );
+		exit;
+	}
+
+	public function handle_delete_academy_member() {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'lms_delete_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+		if ( $post_id > 0 ) {
+			wp_delete_post( $post_id, true );
+		}
+
+		wp_redirect( admin_url( 'admin.php?page=elite-academy&status=deleted' ) );
+		exit;
 	}
 
 	/**
@@ -453,6 +547,166 @@ class Expressive_Admin_Settings {
 		} else {
 			wp_send_json_error( 'Nenhum dado válido de ordenação recebido.' );
 		}
+	}
+
+	/**
+	 * Handle Link Bio Save
+	 */
+	public function handle_link_bio_save() {
+		if ( ! isset( $_POST['lms_nonce'] ) || ! wp_verify_nonce( $_POST['lms_nonce'], 'lms_save_elite_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id   = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_title = sanitize_title( $_POST['post_title'] );
+
+		$post_data = array(
+			'post_title'   => $post_title,
+			'post_status'  => 'publish',
+			'post_type'    => 'elite_links',
+		);
+
+		if ( $post_id > 0 ) {
+			$post_data['ID'] = $post_id;
+			wp_update_post( $post_data );
+		} else {
+			$post_id = wp_insert_post( $post_data );
+		}
+
+		// Save Meta
+		update_post_meta( $post_id, '_lms_bio_title', sanitize_text_field( $_POST['bio_title'] ) );
+		update_post_meta( $post_id, '_lms_bio_subtitle', sanitize_text_field( $_POST['bio_subtitle'] ) );
+		update_post_meta( $post_id, '_lms_bio_photo', intval( $_POST['bio_photo'] ) );
+		update_post_meta( $post_id, '_lms_bio_show_crown', isset( $_POST['show_crown'] ) ? 1 : 0 );
+
+		// Save Links Repeater
+		$links = array();
+		if ( isset( $_POST['links'] ) && is_array( $_POST['links'] ) ) {
+			foreach ( $_POST['links'] as $link ) {
+				if ( ! empty( $link['label'] ) && ! empty( $link['url'] ) ) {
+					$links[] = array(
+						'label' => sanitize_text_field( $link['label'] ),
+						'url'   => esc_url_raw( $link['url'] ),
+						'icon'  => sanitize_text_field( $link['icon'] )
+					);
+				}
+			}
+		}
+		update_post_meta( $post_id, '_lms_bio_links', $links );
+
+		wp_redirect( admin_url( 'admin.php?page=elite-links&status=saved' ) );
+		exit;
+	}
+
+	/**
+	 * Handle Link Bio Deletion
+	 */
+	public function handle_link_bio_delete() {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'lms_delete_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+		if ( $post_id > 0 ) {
+			wp_delete_post( $post_id, true );
+		}
+
+		wp_redirect( admin_url( 'admin.php?page=elite-links&status=deleted' ) );
+		exit;
+	}
+
+	/**
+	 * Handle Landing Page Save
+	 */
+	public function handle_landing_page_save() {
+		if ( ! isset( $_POST['lms_nonce'] ) || ! wp_verify_nonce( $_POST['lms_nonce'], 'lms_save_elite_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id    = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
+		$post_title = sanitize_text_field( $_POST['post_title'] );
+		$post_name  = isset( $_POST['post_name'] ) ? sanitize_title( $_POST['post_name'] ) : '';
+
+		$post_data = array(
+			'post_title'   => $post_title,
+			'post_status'  => 'publish',
+			'post_type'    => 'elite_lp',
+		);
+
+		if ( ! empty( $post_name ) ) {
+			$post_data['post_name'] = $post_name;
+		}
+
+		if ( $post_id > 0 ) {
+			$post_data['ID'] = $post_id;
+			wp_update_post( $post_data );
+		} else {
+			$post_id = wp_insert_post( $post_data );
+		}
+
+		// Save Configuration Meta
+		$template_type = isset( $_POST['elite_lp_template'] ) ? sanitize_text_field( $_POST['elite_lp_template'] ) : 'gran-master';
+		update_post_meta( $post_id, '_elite_lp_template', $template_type );
+
+		// Buttons Configuration
+		$buttons = array();
+		if ( isset( $_POST['buttons'] ) && is_array( $_POST['buttons'] ) ) {
+			foreach ( $_POST['buttons'] as $key => $btn ) {
+				$buttons[$key] = array(
+					'label' => sanitize_text_field( $btn['label'] ),
+					'url'   => esc_url_raw( $btn['url'] )
+				);
+			}
+		}
+		update_post_meta( $post_id, '_elite_lp_buttons', $buttons );
+
+		// Media Configuration (Single Image or Carousel)
+		$media = array();
+		if ( isset( $_POST['media'] ) && is_array( $_POST['media'] ) ) {
+			foreach ( $_POST['media'] as $section => $data ) {
+				$media[$section] = array(
+					'mode' => sanitize_text_field( $data['mode'] ), // 'single' or 'carousel'
+					'ids'  => array_filter( array_map( 'intval', explode( ',', $data['ids'] ) ) )
+				);
+			}
+		}
+		update_post_meta( $post_id, '_elite_lp_media', $media );
+
+		wp_redirect( admin_url( 'admin.php?page=elite-pages&status=saved' ) );
+		exit;
+	}
+
+	/**
+	 * Handle Landing Page Deletion
+	 */
+	public function handle_landing_page_delete() {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'lms_delete_content_nonce' ) ) {
+			wp_die( 'Erro de segurança.' );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( 'Acesso negado.' );
+		}
+
+		$post_id = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+		if ( $post_id > 0 ) {
+			wp_delete_post( $post_id, true );
+		}
+
+		wp_redirect( admin_url( 'admin.php?page=elite-pages&status=deleted' ) );
+		exit;
 	}
 
 }

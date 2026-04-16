@@ -52,7 +52,6 @@ function get_elite_button($section_key, $buttons, $default_label) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Inter:wght@200;400;600&family=Outfit:wght@300;600&display=swap" rel="stylesheet">
-    <?php wp_head(); ?>
     <style>
         :root {
             --gold: #c5a059;
@@ -387,13 +386,10 @@ function get_elite_button($section_key, $buttons, $default_label) {
                         </div>
                         
                         <div class="space-y-6">
-                        <div class="flex items-baseline gap-3 md:gap-4">
-                            <span class="text-white/40 text-xl font-light line-through">R$ 59,97</span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-6xl md:text-7xl outfit font-medium text-white tracking-tighter">R$ 49,97</span>
-                                <span class="text-lg text-white/40">/mês</span>
+                            <div class="flex items-baseline gap-4">
+                                <span class="text-white/40 text-xl font-light line-through">R$ 59,97</span>
+                                <span class="text-6xl md:text-7xl outfit font-medium text-white tracking-tighter">R$ 49,97<span class="text-lg text-white/40">/mês</span></span>
                             </div>
-                        </div>
                             <p class="text-[#c5a059] text-[10px] uppercase tracking-widest font-bold">* Valor garantido pelos primeiros 3 meses.</p>
                         </div>
 
@@ -484,6 +480,5 @@ function get_elite_button($section_key, $buttons, $default_label) {
         });
     </script>
 
-    <?php wp_footer(); ?>
 </body>
 </html>

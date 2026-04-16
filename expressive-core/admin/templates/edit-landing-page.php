@@ -43,11 +43,7 @@ if ($current_template === 'ccp-academy') {
         'artistic' => array('label' => 'Categorias Artísticas', 'has_button' => false),
         'homenagens' => array('label' => 'Homenagens Especiais', 'has_button' => false),
         'speaker' => array('label' => 'Speaker (Rose Oliveira)', 'has_button' => false),
-        'team_juliana' => array('label' => 'Foto: Juliana Parra (CEO)', 'has_button' => false),
-        'team_catia' => array('label' => 'Foto: Cátia Araújo', 'has_button' => false),
-        'team_cley' => array('label' => 'Foto: Cley Fernandes', 'has_button' => false),
-        'team_paty' => array('label' => 'Foto: Paty Batista', 'has_button' => false),
-        'ceo' => array('label' => 'Banner Inferior (Time CEO)', 'has_button' => false),
+        'ceo' => array('label' => 'Time CEO & Mentoras', 'has_button' => false),
         'cta_qr' => array('label' => 'Passaporte Final (QR Code + Botão)', 'has_button' => true, 'button_default' => 'Garanta sua Vaga Agora')
     );
 } else {
@@ -88,12 +84,12 @@ if ($current_template === 'ccp-academy') {
                     </a>
                     <div class="flex items-center gap-6">
                         <div class="flex flex-col gap-1">
-                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Título da Página (Fixo)</label>
-                            <input type="text" name="post_title" value="<?php echo esc_attr($post_title); ?>" readonly class="bg-white/5 border border-white/10 rounded-lg text-xs px-4 py-2 text-white/40 cursor-not-allowed w-64">
+                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Título da Página</label>
+                            <input type="text" name="post_title" value="<?php echo esc_attr($post_title); ?>" placeholder="ex: Gran Master 2026" class="bg-black/40 border border-[#c5a059]/30 rounded-lg text-xs px-4 py-2 text-white focus:outline-none focus:border-[#c5a059] w-64">
                         </div>
 
                         <div class="flex flex-col gap-1">
-                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Link Permanente (Fixo)</label>
+                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Link Permanente (Slug)</label>
                             <?php 
                             $slug = '';
                             if ($post_id > 0) {
@@ -103,20 +99,17 @@ if ($current_template === 'ccp-academy') {
                             ?>
                             <div class="flex items-center gap-2">
                                  <span class="text-[10px] text-white/20">elite/</span>
-                                 <input type="text" name="post_name" value="<?php echo esc_attr($slug); ?>" readonly class="bg-white/5 border border-white/10 rounded-lg text-xs px-4 py-2 text-white/40 cursor-not-allowed w-48">
+                                 <input type="text" name="post_name" value="<?php echo esc_attr($slug); ?>" placeholder="ex: baile-de-gala" class="bg-black/40 border border-[#c5a059]/30 rounded-lg text-xs px-4 py-2 text-white focus:outline-none focus:border-[#c5a059] w-48">
                             </div>
                         </div>
 
                         <div class="flex flex-col gap-1">
-                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Modelo de Design (Fixo)</label>
-                            <div class="bg-gold-500/10 border border-gold-500/30 rounded-lg text-[10px] uppercase font-bold tracking-widest px-4 py-2 text-gold-500">
-                                <?php 
-                                    if ($current_template === 'gran-master') echo 'Elite Gran Master';
-                                    elseif ($current_template === 'gala') echo 'Baile de Gala';
-                                    elseif ($current_template === 'ccp-academy') echo 'CCP Academy';
-                                ?>
-                            </div>
-                            <input type="hidden" name="elite_lp_template" value="<?php echo esc_attr($current_template); ?>">
+                            <label class="text-[10px] uppercase font-bold text-white/40 mb-1">Modelo de Design</label>
+                            <select name="elite_lp_template" onchange="this.form.submit()" class="bg-black/40 border border-[#c5a059]/30 rounded-lg text-xs px-4 py-2 text-white focus:outline-none hover:border-[#c5a059] cursor-pointer">
+                                <option value="gran-master" <?php selected($current_template, 'gran-master'); ?>>Elite Gran Master (Vendas)</option>
+                                <option value="gala" <?php selected($current_template, 'gala'); ?>>Encontro das Grans (Baile de Gala)</option>
+                                <option value="ccp-academy" <?php selected($current_template, 'ccp-academy'); ?>>CCP Academy (Formação)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
