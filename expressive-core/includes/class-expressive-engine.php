@@ -446,7 +446,7 @@ class Expressive_Engine {
 
 		// 3.1 Verify Eligibility (Only for logged-in users)
 		if ( $user_id && $discount_percent > 0 ) {
-			$is_eligible = get_user_meta( $user_id, '_lms_discount_eligible', true ) === 'yes';
+			$is_eligible = ( get_user_meta( $user_id, '_lms_discount_eligible', true ) === 'yes' || current_user_can( 'manage_options' ) );
 			if ( ! $is_eligible ) {
 				$discount_percent = 0;
 				Expressive_Logger::debug( 'DISCOUNT', "Desconto ignorado: Usuário categorizado mas SEM elegibilidade ativa no gestor.", array( 'user_id' => $user_id, 'category' => $detected_category ) );
@@ -619,12 +619,12 @@ class Expressive_Engine {
 				$message = 'Descontos liberados para todas as Autoridades.';
 				break;
 			case 'enable_all':
-				$args['role__in'] = array( 'educadora', 'autoridade' );
+				$args['role__in'] = array( 'educadora', 'autoridade', 'administrator' );
 				$status = 'yes';
-				$message = 'Benefícios liberados para toda a rede Elite.';
+				$message = 'Benefícios liberados para toda a rede Elite (incluindo Admins).';
 				break;
 			case 'disable_all':
-				$args['role__in'] = array( 'educadora', 'autoridade' );
+				$args['role__in'] = array( 'educadora', 'autoridade', 'administrator' );
 				$status = 'no';
 				$message = 'Todos os benefícios foram revogados com sucesso.';
 				break;

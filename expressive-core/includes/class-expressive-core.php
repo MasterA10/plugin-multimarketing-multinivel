@@ -112,21 +112,36 @@ class Expressive_Core {
 	}
 
 	public function enqueue_public_assets() {
-		// Native WP Icons
-		wp_enqueue_style( 'dashicons' );
+		$post_type = get_post_type();
+		$is_lms_page = is_singular( array( 'lms_course', 'lms_lesson', 'lms_live', 'elite_lp', 'elite_links' ) );
+		$is_dashboard = false;
 
-		// Global Styling
-		wp_enqueue_style( 'expressive-lms-style', plugin_dir_url( __FILE__ ) . '../public/css/lms-style.css', array(), $this->version );
+		if ( is_page() ) {
+			$page_type = get_post_meta( get_the_ID(), '_lms_page_type', true );
+			if ( in_array( $page_type, array( 'login', 'area-de-membros', 'dashboard-educador' ) ) ) {
+				$is_lms_page = true;
+				$is_dashboard = true;
+			}
+		}
 
-		// LMS Engine
-		wp_enqueue_script( 'expressive-lms-engine', plugin_dir_url( __FILE__ ) . '../public/js/lms-engine.js', array( 'jquery' ), $this->version, true );
-		wp_localize_script( 'expressive-lms-engine', 'lms_vars', array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'lms_engine_nonce' ),
-		) );
-
-		// Referral Tracker (Global)
+		// Referral Tracker remains GLOBAL to capture ?ref= everywhere
 		wp_enqueue_script( 'expressive-referral-tracker', plugin_dir_url( __FILE__ ) . '../public/js/lms-referral-tracker.js', array(), $this->version, true );
+
+		// Load LMS UI Assets only where needed
+		if ( $is_lms_page ) {
+			// Native WP Icons
+			wp_enqueue_style( 'dashicons' );
+
+			// Global Styling
+			wp_enqueue_style( 'expressive-lms-style', plugin_dir_url( __FILE__ ) . '../public/css/lms-style.css', array(), $this->version );
+
+			// LMS Engine
+			wp_enqueue_script( 'expressive-lms-engine', plugin_dir_url( __FILE__ ) . '../public/js/lms-engine.js', array( 'jquery' ), $this->version, true );
+			wp_localize_script( 'expressive-lms-engine', 'lms_vars', array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'lms_engine_nonce' ),
+			) );
+		}
 	}
 
 	public function template_loader( $template ) {

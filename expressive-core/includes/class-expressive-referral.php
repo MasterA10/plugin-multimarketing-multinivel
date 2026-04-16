@@ -295,51 +295,49 @@ class Expressive_Referral {
 
 	/**
 	 * Get the top educators ranked by referral count for the current year.
-	 */
-	/**
-	 * Get the top educators ranked by referral count for the current year.
+	 * Optimized with a single aggregated query and WordPress Transients.
 	 */
 	public static function get_annual_ranking( $limit = 50 ) {
 		global $wpdb;
 		$table_referrals = $wpdb->prefix . 'lms_referrals';
 		$current_year = date( 'Y' );
+		$cache_key = 'elite_annual_ranking_' . $current_year . '_' . $limit;
 
-		// Pega todos os educadores do sistema para forçar que apareçam na lista (mesmo com 0 indicações)
-		$educators = get_users( array(
-			'role__in' => array( 'educadora', 'administrator' ),
-			'fields'   => 'ID'
-		) );
-
-		$results = array();
-		if ( empty( $educators ) ) {
+		// 1. Try to get from Cache (Transient)
+		$results = get_transient( $cache_key );
+		if ( $results !== false ) {
 			return $results;
 		}
 
-		foreach ( $educators as $educator_id ) {
-			$row = $wpdb->get_row( $wpdb->prepare(
-				"SELECT COUNT(*) as count, SUM(order_total) as total_sales, SUM(commission_amount) as total_commissions 
-				 FROM $table_referrals 
-				 WHERE educator_id = %d AND YEAR(created_at) = %d",
-				$educator_id, $current_year
-			) );
+		// 2. Aggregated Query: Single database hit instead of N+1
+		$results = $wpdb->get_results( $wpdb->prepare(
+			"SELECT educator_id, 
+					COUNT(*) as ref_count, 
+					SUM(order_total) as total_sales, 
+					SUM(commission_amount) as total_commissions 
+			 FROM $table_referrals 
+			 WHERE YEAR(created_at) = %d 
+			 GROUP BY educator_id 
+			 ORDER BY ref_count DESC, total_sales DESC 
+			 LIMIT %d",
+			$current_year, $limit
+		) );
 
-			$results[] = (object) array(
-				'educator_id'       => $educator_id,
-				'ref_count'         => (int) $row->count,
-				'total_sales'       => (float) $row->total_sales,
-				'total_commissions' => (float) $row->total_commissions
-			);
+		// 3. Cast values to correct types
+		if ( ! empty( $results ) ) {
+			foreach ( $results as &$row ) {
+				$row->ref_count         = (int) $row->ref_count;
+				$row->total_sales       = (float) $row->total_sales;
+				$row->total_commissions = (float) $row->total_commissions;
+			}
+		} else {
+			$results = array();
 		}
 
-		// Sort by ref_count DESC
-		usort( $results, function ( $a, $b ) {
-			if ( $a->ref_count == $b->ref_count ) {
-				return $b->total_sales <=> $a->total_sales;
-			}
-			return $b->ref_count <=> $a->ref_count;
-		} );
+		// 4. Set Cache for 1 hour (3600 seconds)
+		set_transient( $cache_key, $results, HOUR_IN_SECONDS );
 
-		return array_slice( $results, 0, $limit );
+		return $results;
 	}
 
 	/**
