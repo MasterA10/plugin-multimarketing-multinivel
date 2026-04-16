@@ -17,6 +17,8 @@ class Expressive_Gamification {
 		// 1. Process Rule of 10 (Bonus)
 		if ( $referral_count > 0 && $referral_count % 10 === 0 ) {
 			$this->trigger_financial_bonus( $educator_id, $referral_count );
+		} else {
+			Expressive_Logger::debug( 'GAMIFY', "Progressão verificada: Bônus financeiro não aplicável para esta contagem", array( 'educator_id' => $educator_id, 'count' => $referral_count ) );
 		}
 
 		// 2. Process Ranking (Level Up)

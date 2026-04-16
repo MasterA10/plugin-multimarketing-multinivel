@@ -252,12 +252,19 @@ class Expressive_Referral {
 
 		if ( $educator ) {
 			setcookie( 'exp_ref', $ref_code, time() + ( 30 * DAY_IN_SECONDS ), COOKIEPATH, COOKIE_DOMAIN );
-			Expressive_Logger::info( 'REFERRAL', "Cookie de indicação definido", array( 'ref_code' => $ref_code, 'educator_id' => $educator->ID ) );
+			Expressive_Logger::info( 'REFERRAL', "Cookie de indicação DEFINIDO com sucesso", array( 
+				'ref_code'    => $ref_code, 
+				'educator_id' => $educator->ID,
+				'educator'    => $educator->display_name,
+				'landing_url' => $_SERVER['REQUEST_URI']
+			) );
 
 			if ( is_user_logged_in() ) {
 				update_user_meta( get_current_user_id(), '_exp_referred_by', $ref_code );
-				Expressive_Logger::info( 'REFERRAL', "Vinculado ao perfil do usuário logado", array( 'user_id' => get_current_user_id(), 'ref_code' => $ref_code ) );
+				Expressive_Logger::info( 'REFERRAL', "Afiliação vinculada permanentemente ao perfil logado", array( 'user_id' => get_current_user_id(), 'ref_code' => $ref_code ) );
 			}
+		} else {
+			Expressive_Logger::warning( 'REFERRAL', "Tentativa de indicação INVÁLIDA: Código não encontrado", array( 'ref_code' => $ref_code, 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown' ) );
 		}
 	}
 

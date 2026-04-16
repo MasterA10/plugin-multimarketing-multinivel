@@ -20,6 +20,10 @@ class Expressive_Certificate {
 
 		Expressive_Logger::debug( 'CERT', "Verificação de elegibilidade", array( 'user_id' => $user_id, 'course_id' => $course_id, 'completed' => $completed_count, 'total' => $total_lessons, 'pct' => round($percentage) . '%' ) );
 
+		if ( $percentage < 75 ) {
+			Expressive_Logger::warning( 'CERT', "Elegibilidade NEGADA: Progresso insuficiente", array( 'user_id' => $user_id, 'course_id' => $course_id, 'progress' => round($percentage) . '%' ) );
+		}
+
 		return ( $percentage >= 75 );
 	}
 
@@ -119,6 +123,7 @@ class Expressive_Certificate {
 		$pct = $total_platform > 0 ? round( ($total_watched / $total_platform) * 100 ) : 0;
 
 		if ( $pct < 75 ) {
+			Expressive_Logger::warning( 'CERT', "Tentativa de visualização GLOBAL REJEITADA: Requisito de 75% não atingido", array( 'user_id' => $user_id, 'platform_progress' => $pct . '%' ) );
 			wp_die( 'Sua jornada ainda não atingiu 75% da plataforma para liberar o Certificado de Elite.' );
 		}
 

@@ -17,15 +17,18 @@ class Expressive_Access {
 
 		// --- 1. PASSE ADMINISTRATIVO VITALÍCIO ---
 		if ( user_can( $user_id, 'manage_options' ) ) {
+			Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Bypass Administrativo detectado", array( 'user_id' => $user_id ) );
 			return true;
 		}
 
 		// --- 2. SOBRESCRITA MANUAL (ADMIN OVERDRIVE) ---
 		$manual_status = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
 		if ( $manual_status === 'blocked' ) {
+			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Sobreposição manual 'BLOQUEADO' ativa", array( 'user_id' => $user_id ) );
 			return false;
 		}
 		if ( $manual_status === 'unblocked' ) {
+			Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO: Sobreposição manual 'LIBERADO' ativa", array( 'user_id' => $user_id ) );
 			return true;
 		}
 
@@ -39,18 +42,28 @@ class Expressive_Access {
 
 			// Se temos um status da API e a verificação é recente, confia nele como verdade absoluta
 			if ( ! empty( $cached_status ) && $last_check && ( time() - (int) $last_check ) < $cache_ttl ) {
-				return ( $cached_status === 'active' );
+				$is_active = ( $cached_status === 'active' );
+				Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Baseado em cache de API recente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
+				return $is_active;
 			}
 
 			// Cache expirado ou sem cache: tenta verificação em tempo real (SÓ SE PERMITIDO)
 			if ( $allow_api ) {
 				$api_status = Expressive_External_API::check_user_status( $user_id );
-				if ( $api_status === 'active' ) return true;
-				if ( $api_status === 'inactive' ) return false;
+				if ( $api_status === 'active' ) {
+					Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
+					return true;
+				}
+				if ( $api_status === 'inactive' ) {
+					Expressive_Logger::warning( 'ACCESS', "Acesso NEGADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
+					return false;
+				}
 			} else {
 				// No modo silencioso (dashboard), confia no que já temos
 				if ( ! empty( $cached_status ) ) {
-					return ( $cached_status === 'active' );
+					$is_active = ( $cached_status === 'active' );
+					Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Modo silencioso usando cache existente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
+					return $is_active;
 				}
 			}
 		}
@@ -58,11 +71,14 @@ class Expressive_Access {
 		// --- 4. STATUS LOCAL (Lógica da página Assinantes) ---
 		$local_status = get_user_meta( $user_id, '_lms_subscription_status', true );
 		if ( $local_status === 'suspended' ) {
+			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Status local marcado como SUSPENSO", array( 'user_id' => $user_id ) );
 			return false;
 		}
 
 		// --- 5. FALLBACK PARA WOOCOMMERCE ---
-		return $this->has_active_woocommerce_subscription( $user_id );
+		$wc_status = $this->has_active_woocommerce_subscription( $user_id );
+		Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $wc_status ? 'LIBERADO' : 'NEGADO' ) . ": Verificação final via WooCommerce Fallback", array( 'user_id' => $user_id ) );
+		return $wc_status;
 	}
 
 	/**
