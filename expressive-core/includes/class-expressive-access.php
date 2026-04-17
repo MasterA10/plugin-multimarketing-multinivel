@@ -168,11 +168,17 @@ class Expressive_Access {
 			update_user_meta( $user_id, '_lms_subscription_status', 'suspended' );
 			update_user_meta( $user_id, '_lms_elite_manual_status', 'blocked' );
 			Expressive_Logger::info( 'ACCESS', "Status de acesso ATUALIZADO para: SUSPENSO", array( 'target_user' => $user_id ) );
-		} elseif ( $status === 'active' || $status === 'none' ) {
+		} elseif ( $status === 'none' ) {
+			// AUTOMATIC MODE: Secure by default. 
+			// We set local status to suspended so they ONLY enter if the API validates them as active.
+			update_user_meta( $user_id, '_lms_subscription_status', 'suspended' );
+			update_user_meta( $user_id, '_lms_elite_manual_status', 'none' );
+			delete_user_meta( $user_id, '_lms_elite_api_status' ); // Re-trigger API check
+			Expressive_Logger::info( 'ACCESS', "Status de acesso ATUALIZADO para: AUTOMÁTICO (Seguro por padrão)", array( 'target_user' => $user_id ) );
+		} elseif ( $status === 'active' ) {
 			update_user_meta( $user_id, '_lms_subscription_status', 'active' );
 			update_user_meta( $user_id, '_lms_elite_manual_status', 'none' );
-			delete_user_meta( $user_id, '_lms_elite_api_status' ); // Clean up cache to re-trigger API check
-			Expressive_Logger::info( 'ACCESS', "Status de acesso ATUALIZADO para: AUTOMÁTICO/ATIVO", array( 'target_user' => $user_id ) );
+			Expressive_Logger::info( 'ACCESS', "Status de acesso ATUALIZADO para: ATIVO", array( 'target_user' => $user_id ) );
 		} elseif ( $status === 'unblocked' ) {
 			update_user_meta( $user_id, '_lms_subscription_status', 'active' );
 			update_user_meta( $user_id, '_lms_elite_manual_status', 'unblocked' );

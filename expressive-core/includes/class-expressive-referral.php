@@ -61,7 +61,11 @@ class Expressive_Referral {
 
 	public function save_referral_on_registration( $user_id ) {
 		if ( isset( $_COOKIE['exp_ref'] ) ) {
-			update_user_meta( $user_id, '_exp_referred_by', sanitize_text_field( $_COOKIE['exp_ref'] ) );
+			$ref_code = sanitize_text_field( $_COOKIE['exp_ref'] );
+			update_user_meta( $user_id, '_exp_referred_by', $ref_code );
+			Expressive_Logger::info( 'REFERRAL', "Afiliado vinculado ao novo perfil via Cookie", array( 'user_id' => $user_id, 'ref_code' => $ref_code ) );
+		} else {
+			Expressive_Logger::debug( 'REFERRAL', "Novo usuário registrado sem cookie de indicação", array( 'user_id' => $user_id ) );
 		}
 	}
 
@@ -73,6 +77,8 @@ class Expressive_Referral {
 			$referral_code = sanitize_text_field( $_COOKIE['exp_ref'] );
 			$order->update_meta_data( '_exp_referred_by', $referral_code );
 			Expressive_Logger::info( 'REFERRAL', "Cookie vinculado ao pedido (create_order)", array( 'ref_code' => $referral_code, 'order_id' => $order->get_id() ) );
+		} else {
+			Expressive_Logger::debug( 'REFERRAL', "Pedido criado sem cookie de indicação presente", array( 'order_id' => $order->get_id() ) );
 		}
 	}
 
@@ -109,6 +115,12 @@ class Expressive_Referral {
 
 		$referral_code = $order->get_meta( '_exp_referred_by' );
 		$authority_id = $order->get_user_id();
+
+		// Check if order is eligible (must be processing or completed)
+		if ( ! in_array( $order->get_status(), array( 'processing', 'completed' ) ) ) {
+			Expressive_Logger::debug( 'REFERRAL', "Conversão em espera: aguardando confirmação de pagamento", array( 'order_id' => $order_id, 'status' => $order->get_status() ) );
+			return;
+		}
 
 		// FALLBACK: Se o pedido não tem a tag, procura no Perfil do Usuário
 		if ( ! $referral_code && $authority_id ) {
@@ -234,9 +246,22 @@ class Expressive_Referral {
 				array( '%d', '%d', '%d', '%f', '%f', '%s' )
 			);
 
+			// Clear ranking cache to ensure real-time leaderboard updates
+			self::clear_ranking_cache();
+
 			// Trigger Gamification Engine update
 			do_action( 'lms_new_referral_registered', $educator_id, $authority_id, $order_id );
 		}
+	}
+
+	/**
+	 * Clears the annual ranking transient cache to force an update.
+	 */
+	public static function clear_ranking_cache() {
+		$current_year = date( 'Y' );
+		delete_transient( 'elite_annual_ranking_' . $current_year . '_50' );
+		delete_transient( 'elite_annual_ranking_' . $current_year . '_10' );
+		delete_transient( 'elite_annual_ranking_' . $current_year . '_5' );
 	}
 
 	/**
@@ -251,7 +276,8 @@ class Expressive_Referral {
 		$educator = $this->find_educator_by_code( $ref_code );
 
 		if ( $educator ) {
-			setcookie( 'exp_ref', $ref_code, time() + ( 30 * DAY_IN_SECONDS ), COOKIEPATH, COOKIE_DOMAIN );
+			// Path '/' and empty domain for maximum cross-subdomain/AJAX compatibility
+			setcookie( 'exp_ref', $ref_code, time() + ( 30 * DAY_IN_SECONDS ), '/', '', is_ssl(), true );
 			Expressive_Logger::info( 'REFERRAL', "Cookie de indicação DEFINIDO com sucesso", array( 
 				'ref_code'    => $ref_code, 
 				'educator_id' => $educator->ID,
@@ -274,6 +300,7 @@ class Expressive_Referral {
 	 */
 	public function trigger_recovery() {
 		if ( isset( $_GET['recover_referrals'] ) && current_user_can( 'manage_options' ) ) {
+			// 1. Re-process old orders
 			$orders = wc_get_orders( array(
 				'status' => array( 'wc-processing', 'wc-completed' ),
 				'limit'  => -1,
@@ -282,7 +309,11 @@ class Expressive_Referral {
 			foreach ( $orders as $order ) {
 				$this->process_completed_referral( $order->get_id() );
 			}
-			wp_die('<h1>Recuperação Concluída</h1><p>Todas as compras antigas qualificáveis foram conectadas aos educadores.</p><a href="/wp-admin/">Voltar ao Painel</a>');
+
+			// 2. Force clear ranking cache
+			self::clear_ranking_cache();
+
+			wp_die('<h1>Recuperação e Cache Concluídos</h1><p>Todas as compras foram re-processadas e o Ranking foi atualizado.</p><a href="/wp-admin/">Voltar ao Painel</a>');
 		}
 	}
 
