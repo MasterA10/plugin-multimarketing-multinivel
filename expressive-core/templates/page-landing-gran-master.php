@@ -302,9 +302,11 @@ function get_elite_button($section_key, $buttons, $default_label) {
                 </div>
             </div>
 
+            <?php if (!empty($media['phases']['ids'])) : ?>
             <div class="aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden glass border-white/5">
                 <?php echo render_elite_media('phases', $media); ?>
             </div>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -409,9 +411,11 @@ function get_elite_button($section_key, $buttons, $default_label) {
                 <?php endforeach; ?>
             </div>
 
+            <?php if (!empty($media['benefits']['ids'])) : ?>
             <div class="aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden glass border-white/5">
                 <?php echo render_elite_media('benefits', $media); ?>
             </div>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -429,9 +433,11 @@ function get_elite_button($section_key, $buttons, $default_label) {
                     </div>
                 <?php endforeach; ?>
              </div>
+             <?php if (!empty($media['schedule']['ids'])) : ?>
              <div class="mt-12 md:mt-20 aspect-video max-w-5xl mx-auto px-2">
                  <?php echo render_elite_media('schedule', $media); ?>
              </div>
+             <?php endif; ?>
         </div>
     </section>
 
@@ -470,9 +476,11 @@ function get_elite_button($section_key, $buttons, $default_label) {
 
             <p class="text-[10px] md:text-xs text-center text-white/20 italic max-w-xl mx-auto">Este planejamento foi validado por todos que já chegaram ao nível Gran Master, mas o resultado depende exclusivamente da sua execução.</p>
             
+            <?php if (!empty($media['map']['ids'])) : ?>
             <div class="aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden glass border-white/5">
                 <?php echo render_elite_media('map', $media); ?>
             </div>
+            <?php endif; ?>
         </div>
     </section>
 
@@ -595,9 +603,11 @@ function get_elite_button($section_key, $buttons, $default_label) {
                 </div>
             </div>
 
+            <?php if (!empty($media['choices']['ids'])) : ?>
             <div class="aspect-[21/9] rounded-[40px] overflow-hidden shadow-2xl">
                  <?php echo render_elite_media('choices', $media); ?>
             </div>
+            <?php endif; ?>
         </div>
     </section>
 
