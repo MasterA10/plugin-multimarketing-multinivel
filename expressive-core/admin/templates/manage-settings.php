@@ -35,6 +35,13 @@ if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycl
         update_option( 'lms_commission_percentage', intval( $_POST['commission_percentage'] ) );
     }
 
+    if ( isset( $_POST['required_approval'] ) ) {
+        update_option( 'lms_required_approval', sanitize_text_field( $_POST['required_approval'] ) );
+    }
+
+    $enable_fallback = isset( $_POST['enable_role_fallback'] ) ? 'yes' : 'no';
+    update_option( 'lms_enable_role_fallback', $enable_fallback );
+
     echo '<div class="updated notice is-dismissible"><p>Configurações salvas com sucesso!</p></div>';
 }
 
@@ -51,6 +58,8 @@ $all_eligible = get_option( 'lms_all_products_eligible', 'yes' );
 $enable_woo_log = get_option( 'lms_enable_woo_logging', 'no' );
 $show_commissions = get_option( 'lms_show_commissions', 'yes' );
 $commission_pct = get_option( 'lms_commission_percentage', 10 );
+$required_approval = get_option( 'lms_required_approval', 'none' );
+$enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
 ?>
 
 <div class="elite-admin-wrap bg-[#111] text-white min-h-screen p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans max-w-4xl">
@@ -143,6 +152,29 @@ $commission_pct = get_option( 'lms_commission_percentage', 10 );
                             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gold-500 font-bold opacity-50">%</span>
                         </div>
                         <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Valor aplicado sobre o total de cada venda indicada.</p>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-white/5 space-y-6">
+                    <div class="space-y-4 max-w-md">
+                        <label for="required_approval" class="text-[11px] font-bold uppercase tracking-widest text-gold-400 block">Rigor de Cadastro & Aprovação (Roles)</label>
+                        <select name="required_approval" id="required_approval" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                            <option value="none" <?php selected($required_approval, 'none'); ?>>Ninguém (Acesso Livre Imediato)</option>
+                            <option value="educadora" <?php selected($required_approval, 'educadora'); ?>>Apenas Educadoras</option>
+                            <option value="autoridade" <?php selected($required_approval, 'autoridade'); ?>>Apenas Autoridades</option>
+                            <option value="both" <?php selected($required_approval, 'both'); ?>>Ambas Precisam de Aprovação Individual</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-4 max-w-md bg-white/[0.02] p-6 rounded-2xl border border-white/5">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input name="enable_role_fallback" type="checkbox" id="enable_role_fallback" value="yes" <?php checked( $enable_fallback, 'yes' ); ?> class="w-5 h-5 bg-black/40 border border-white/10 rounded text-gold-500 focus:ring-gold-500">
+                            <span class="text-sm font-bold text-white group-hover:text-gold-500 transition-colors uppercase tracking-tight">Habilitar Fallback (Educadora → Autoridade)</span>
+                        </label>
+                        <p class="text-[10px] text-gray-500 leading-relaxed italic">
+                            <strong>Sim:</strong> Novas Educadoras viram Autoridades na hora e ganham 30% de desconto enquanto esperam sua aprovação manual para o nível de 40%.<br>
+                            <strong>Não:</strong> Elas ficam como usuários comuns (sem descontos) até você aprovar.
+                        </p>
                     </div>
                 </div>
 

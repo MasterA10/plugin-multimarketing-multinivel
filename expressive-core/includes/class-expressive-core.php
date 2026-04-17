@@ -95,6 +95,9 @@ class Expressive_Core {
 		// Auto-block new users for Elite Area
 		add_action( 'user_register', array( $this, 'auto_block_new_user' ) );
 
+		// Role Approval Interception
+		add_action( 'set_user_role', array( $this, 'handle_role_approval_intercept' ), 10, 3 );
+
 		// Global Modal Injection (Certificate, Visitor Indicator)
 		add_action( 'wp_footer', array( $this, 'inject_global_modals' ) );
 	}
@@ -348,7 +351,71 @@ class Expressive_Core {
 		// Optional: Initialize API check timestamp
 		update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
 
-		Expressive_Logger::info( 'AUTH', "Novo usuário bloqueado e sincronizado via Central de Acesso", array( 'user_id' => $user_id ) );
+		// Initial Role Interception (in case set_user_role fires before/unreliably during user_register)
+		$user = get_userdata( $user_id );
+		if ( $user && ! empty( $user->roles ) ) {
+			$initial_role = reset( $user->roles );
+			$this->handle_role_approval_intercept( $user_id, $initial_role, array() );
+		}
+
+		Expressive_Logger::info( 'AUTH', "Novo usuário processado e sincronizado via Central de Acesso", array( 'user_id' => $user_id ) );
+	}
+
+	/**
+	 * Intercept role assignments to enforce manual approval for key tiers.
+	 */
+	public function handle_role_approval_intercept( $user_id, $role, $old_roles ) {
+		$required = get_option( 'lms_required_approval', 'none' );
+		if ( $required === 'none' ) return;
+
+		// Skip if this is an explicitly approved upgrade
+		if ( get_user_meta( $user_id, '_lms_executing_approval', true ) ) {
+			delete_user_meta( $user_id, '_lms_executing_approval' );
+			return;
+		}
+
+		$is_educadora  = ( $role === 'educadora' );
+		$is_autoridade = ( $role === 'autoridade' );
+
+		$needs_approval = false;
+		if ( $required === 'both' && ( $is_educadora || $is_autoridade ) ) $needs_approval = true;
+		if ( $required === 'educadora' && $is_educadora ) $needs_approval = true;
+		if ( $required === 'autoridade' && $is_autoridade ) $needs_approval = true;
+
+		if ( $needs_approval ) {
+			$enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
+
+			// Save pending intent
+			update_user_meta( $user_id, '_lms_pending_role', $role );
+			update_user_meta( $user_id, '_lms_approval_status', 'pending' );
+
+			// Determine Fallback Level
+			$fallback_role = 'subscriber';
+			$grant_initial_discount = 'no';
+
+			if ( $is_educadora && $enable_fallback === 'yes' ) {
+				$fallback_role = 'autoridade'; 
+				$grant_initial_discount = 'yes'; // Grant 30% immediately while waiting for 40%
+			}
+
+			// Apply initial discount eligibility if in fallback
+			update_user_meta( $user_id, '_lms_discount_eligible', $grant_initial_discount );
+
+			// Change role to fallback WITHOUT trigging this hook recursively
+			remove_action( 'set_user_role', array( $this, 'handle_role_approval_intercept' ), 10 );
+			
+			$user = new WP_User( $user_id );
+			$user->set_role( $fallback_role );
+			
+			add_action( 'set_user_role', array( $this, 'handle_role_approval_intercept' ), 10, 3 );
+
+			Expressive_Logger::warning( 'AUTH', "Papel interceptado: Aprovação Pendente", array( 
+				'user_id' => $user_id, 
+				'requested' => $role, 
+				'fallback' => $fallback_role,
+				'initial_discount' => $grant_initial_discount
+			));
+		}
 	}
 
 	/**

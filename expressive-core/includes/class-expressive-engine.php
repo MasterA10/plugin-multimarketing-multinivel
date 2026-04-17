@@ -27,6 +27,8 @@ class Expressive_Engine {
 		// Benefits Management
 		add_action( 'wp_ajax_lms_toggle_discount_eligibility', array( $this, 'ajax_toggle_discount_eligibility' ) );
 		add_action( 'wp_ajax_lms_bulk_discount_control', array( $this, 'ajax_bulk_discount_control' ) );
+		add_action( 'wp_ajax_lms_approve_role_upgrade', array( $this, 'ajax_approve_role_upgrade' ) );
+		add_action( 'wp_ajax_lms_change_member_role', array( $this, 'ajax_change_member_role' ) );
 
 		// WooCommerce Checkout Discounts
 		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'apply_lms_discounts' ), 20, 1 );
@@ -437,6 +439,20 @@ class Expressive_Engine {
 
 		// 3. Set discount based on detected category
 		if ( $detected_category === 'educadora' ) {
+			// CRITICAL: Verify if Educator level requires approval
+			$required_approval = get_option( 'lms_required_approval', 'none' );
+			$is_already_approved = ( $user_id && Expressive_Referral::is_educator( $user_id ) && get_user_meta( $user_id, '_lms_approval_status', true ) === 'approved' );
+
+			// If approval is mandatory for this level and they aren't an officially approved user yet
+			if ( in_array( $required_approval, array( 'educadora', 'both' ) ) && ! $is_already_approved ) {
+				$enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
+				// Force Downgrade the discount detection
+				$detected_category = ( $enable_fallback === 'yes' ) ? 'autoridade' : '';
+			}
+		}
+
+		// 4. Final Percent & Label calculation
+		if ( $detected_category === 'educadora' ) {
 			$discount_percent = 0.40;
 			$label = 'Desconto Elite: Educadora (40%)';
 		} elseif ( $detected_category === 'autoridade' ) {
@@ -639,6 +655,102 @@ class Expressive_Engine {
 
 		Expressive_Logger::info( 'BENEFITS', "Ação em massa executada", array( 'type' => $type, 'count' => count($users), 'admin_id' => get_current_user_id() ) );
 		wp_send_json_success( $message . ' (Afetou ' . count($users) . ' usuários)' );
+	}
+
+	/**
+	 * AJAX: Approve a pending role upgrade.
+	 */
+	public function ajax_approve_role_upgrade() {
+		check_ajax_referer( 'benefits_mgmt_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Acesso negado.' );
+
+		$user_id = intval( $_POST['user_id'] );
+		$user = new WP_User( $user_id );
+
+		if ( in_array( 'administrator', (array) $user->roles ) ) {
+			wp_send_json_error( 'Contas Admin possuem bypass vitalício e não podem ser categorizadas.' );
+		}
+
+		$pending_role = get_user_meta( $user_id, '_lms_pending_role', true );
+		
+		if ( ! $pending_role ) {
+			wp_send_json_error( 'Nenhum upgrade pendente encontrado para este usuário.' );
+		}
+
+		// Set flag to bypass interception recursion in Expressive_Core
+		update_user_meta( $user_id, '_lms_executing_approval', true );
+
+		$user = new WP_User( $user_id );
+		$user->set_role( $pending_role );
+
+		// Clear pending flags
+		delete_user_meta( $user_id, '_lms_pending_role' );
+		update_user_meta( $user_id, '_lms_approval_status', 'approved' );
+		
+		// Auto-enable member discounts (Separate from platform access)
+		update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
+
+		// Sync educator metadata
+		if ( $pending_role === 'educadora' ) {
+			update_user_meta( $user_id, '_lms_is_educator', 'yes' );
+		} else {
+			delete_user_meta( $user_id, '_lms_is_educator' );
+		}
+
+		Expressive_Logger::info( 'AUTH', "Upgrade de nível APROVADO", array( 
+			'user_id' => $user_id, 
+			'new_role' => $pending_role,
+			'admin_id' => get_current_user_id()
+		) );
+
+		wp_send_json_success( 'Upgrade aprovado com sucesso!' );
+	}
+
+	/**
+	 * AJAX: Manually swap category (Educadora <-> Autoridade).
+	 */
+	public function ajax_change_member_role() {
+		check_ajax_referer( 'benefits_mgmt_nonce', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Acesso negado.' );
+
+		$user_id = intval( $_POST['user_id'] );
+		$user = new WP_User( $user_id );
+		
+		if ( ! $user->exists() ) wp_send_json_error( 'Usuário não encontrado.' );
+
+		if ( in_array( 'administrator', (array) $user->roles ) ) {
+			wp_send_json_error( 'Proteção de Sistema: Contas Administrativas não podem ser alteradas.' );
+		}
+
+		$is_educadora = in_array( 'educadora', (array) $user->roles );
+		$new_role = $is_educadora ? 'autoridade' : 'educadora';
+
+		// Set flag to bypass interception recursion in Expressive_Core
+		update_user_meta( $user_id, '_lms_executing_approval', true );
+
+		$user->set_role( $new_role );
+		
+		// Clear any pending statuses since we are doing a forced change
+		delete_user_meta( $user_id, '_lms_pending_role' );
+		update_user_meta( $user_id, '_lms_approval_status', 'approved' );
+
+		// Sync educator metadata to ensure discounts work correctly
+		if ( $new_role === 'educadora' ) {
+			update_user_meta( $user_id, '_lms_is_educator', 'yes' );
+			update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
+		} else {
+			delete_user_meta( $user_id, '_lms_is_educator' );
+			update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
+		}
+
+		Expressive_Logger::info( 'BENEFITS', "Categoria de membro TROCADA manualmente", array( 
+			'user_id' => $user_id, 
+			'old_role' => $is_educadora ? 'educadora' : 'autoridade',
+			'new_role' => $new_role,
+			'admin_id' => get_current_user_id()
+		) );
+
+		wp_send_json_success( 'Categoria alterada para ' . ucfirst($new_role) . '!' );
 	}
 
 }
