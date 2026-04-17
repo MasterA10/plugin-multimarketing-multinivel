@@ -345,8 +345,8 @@ class Expressive_Core {
 	 * Synchronizes both LMS Manual Status and API Manager Status.
 	 */
 	public function auto_block_new_user( $user_id ) {
-		// Unified Block via Expressive_Access
-		Expressive_Access::update_access_status( $user_id, 'blocked' );
+		// Unified Block via Expressive_Access - Set to 'none' (Automatic) so API takes control
+		Expressive_Access::update_access_status( $user_id, 'none' );
 		
 		// Optional: Initialize API check timestamp
 		update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
@@ -426,9 +426,12 @@ class Expressive_Core {
 			include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php';
 			include EXPRESSIVE_CORE_PATH . 'templates/parts/cert-modal.php';
 
-			// Referral Button for Educators
-			if ( is_user_logged_in() && class_exists('Expressive_Referral') && Expressive_Referral::is_educator( get_current_user_id() ) ) {
-				include EXPRESSIVE_CORE_PATH . 'templates/parts/referral-button.php';
+			// Referral Button for Educators and Authorities
+			if ( is_user_logged_in() && class_exists('Expressive_Referral') ) {
+				$current_user_id = get_current_user_id();
+				if ( Expressive_Referral::is_educator( $current_user_id ) || Expressive_Referral::is_authority( $current_user_id ) ) {
+					include EXPRESSIVE_CORE_PATH . 'templates/parts/referral-button.php';
+				}
 			}
 		}
 	}
