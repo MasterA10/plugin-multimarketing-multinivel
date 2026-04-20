@@ -63,4 +63,4 @@ As classes responsáveis por este fluxo são:
 - `Expressive_Engine`: Disponibiliza os hooks AJAX para os botões do painel.
 
 ---
-*Documentação gerada automaticamente para suporte à infraestrutura Elite LMS.*
+*Documentação gerada automaticamente para suporte à infraestrutura Elite LMS.* 
