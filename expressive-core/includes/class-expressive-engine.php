@@ -441,7 +441,7 @@ class Expressive_Engine {
 		if ( $detected_category === 'educadora' ) {
 			// CRITICAL: Verify if Educator level requires approval
 			$required_approval = get_option( 'lms_required_approval', 'none' );
-			$is_already_approved = ( $user_id && Expressive_Referral::is_educator( $user_id ) && get_user_meta( $user_id, '_lms_approval_status', true ) === 'approved' );
+			$is_already_approved = ( $user_id && Expressive_Referral::is_educator( $user_id ) && ( get_user_meta( $user_id, '_lms_approval_status', true ) === 'approved' || current_user_can( 'manage_options' ) ) );
 
 			// If approval is mandatory for this level and they aren't an officially approved user yet
 			if ( in_array( $required_approval, array( 'educadora', 'both' ) ) && ! $is_already_approved ) {
