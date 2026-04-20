@@ -200,7 +200,9 @@ class Multinivel_marketing_WC_Discounts {
 			update_user_meta( $user_id, 'user_registration_radio_1771803100', $categoria );
 			
 			// Flag as educator for high-performance dashboard if role is educadora
-			if ( $categoria === 'educadora' ) {
+			// Check if the role was actually set and not intercepted
+			$user = new WP_User( $user_id );
+			if ( $categoria === 'educadora' && in_array( 'educadora', (array) $user->roles ) ) {
 				update_user_meta( $user_id, '_lms_is_educator', 'yes' );
 			}
 		}
