@@ -115,6 +115,9 @@ class Multinivel_marketing_WC_Discounts {
 	 * @param WC_Cart $cart
 	 */
 	public function apply_custom_discounts( $cart ) {
+		// DESATIVADO: Previne conflito de múltiplos descontos com o Expressive_Engine.
+		return;
+
 		if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
 
 		$categoria = $this->detect_user_category();

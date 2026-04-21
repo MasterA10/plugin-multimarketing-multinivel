@@ -365,9 +365,6 @@ class Expressive_Core {
 	 * Intercept role assignments to enforce manual approval for key tiers.
 	 */
 	public function handle_role_approval_intercept( $user_id, $role, $old_roles ) {
-		$required = get_option( 'lms_required_approval', 'none' );
-		if ( $required === 'none' ) return;
-
 		// Skip if this is an explicitly approved upgrade
 		if ( get_user_meta( $user_id, '_lms_executing_approval', true ) ) {
 			delete_user_meta( $user_id, '_lms_executing_approval' );
@@ -376,6 +373,11 @@ class Expressive_Core {
 
 		$is_educadora  = ( $role === 'educadora' );
 		$is_autoridade = ( $role === 'autoridade' );
+
+		// Only care about these roles
+		if ( ! $is_educadora && ! $is_autoridade ) return;
+
+		$required = get_option( 'lms_required_approval', 'none' );
 
 		$needs_approval = false;
 		if ( $required === 'both' && ( $is_educadora || $is_autoridade ) ) $needs_approval = true;
@@ -415,6 +417,10 @@ class Expressive_Core {
 				'fallback' => $fallback_role,
 				'initial_discount' => $grant_initial_discount
 			));
+		} else {
+			// Acesso livre imediato (Sem aprovação necessária)
+			update_user_meta( $user_id, '_lms_approval_status', 'approved' );
+			update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
 		}
 	}
 

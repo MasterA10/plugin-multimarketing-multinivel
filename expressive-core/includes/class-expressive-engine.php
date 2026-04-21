@@ -31,7 +31,7 @@ class Expressive_Engine {
 		add_action( 'wp_ajax_lms_change_member_role', array( $this, 'ajax_change_member_role' ) );
 
 		// WooCommerce Checkout Discounts
-		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'apply_lms_discounts' ), 20, 1 );
+		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'apply_lms_discounts' ), 99999, 1 );
 	}
 
 	/**
@@ -449,6 +449,16 @@ class Expressive_Engine {
 				// Force Downgrade the discount detection
 				$detected_category = ( $enable_fallback === 'yes' ) ? 'autoridade' : '';
 			}
+		} elseif ( $detected_category === 'autoridade' ) {
+			// CRITICAL: Verify if Authority level requires approval
+			$required_approval = get_option( 'lms_required_approval', 'none' );
+			$is_already_approved = ( $user_id && Expressive_Referral::is_authority( $user_id ) && ( get_user_meta( $user_id, '_lms_approval_status', true ) === 'approved' || current_user_can( 'manage_options' ) ) );
+
+			// If approval is mandatory for this level and they aren't an officially approved user yet
+			if ( in_array( $required_approval, array( 'autoridade', 'both' ) ) && ! $is_already_approved ) {
+				// No fallback for autoridade, they just lose the discount detection
+				$detected_category = '';
+			}
 		}
 
 		// 4. Final Percent & Label calculation
@@ -487,6 +497,18 @@ class Expressive_Engine {
 
 			if ( $discountable_subtotal > 0 ) {
 				$discount_amount = ( $discountable_subtotal * $discount_percent ) * -1;
+
+				// TRAVA DE RESILIÊNCIA: Limpa taxas negativas anteriores (adicionadas por outros plugins ou hooks legados) para garantir o desconto exclusivo.
+				$current_fees = $cart->get_fees();
+				if ( ! empty( $current_fees ) ) {
+					$cart->fees_api()->remove_all_fees();
+					foreach ( $current_fees as $fee ) {
+						if ( $fee->amount >= 0 ) {
+							$cart->add_fee( $fee->name, $fee->amount, $fee->taxable, $fee->tax_class );
+						}
+					}
+				}
+
 				$cart->add_fee( $label, $discount_amount );
 				
 				Expressive_Logger::info( 'DISCOUNT', "Desconto aplicado", array( 

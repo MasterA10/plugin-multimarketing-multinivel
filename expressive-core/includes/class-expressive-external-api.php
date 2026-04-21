@@ -166,7 +166,7 @@ class Expressive_External_API {
                     
                     // Se a API confirma que é ativo, remove bloqueio automático (mas preserva bloqueio manual do admin)
                     $manual = get_user_meta( $user->ID, '_lms_elite_manual_status', true );
-                    if ( $manual === 'blocked' ) {
+                    if ( $manual !== 'blocked' ) {
                         update_user_meta( $user->ID, '_lms_elite_manual_status', 'none' );
                         update_user_meta( $user->ID, '_lms_subscription_status', 'active' );
                     }

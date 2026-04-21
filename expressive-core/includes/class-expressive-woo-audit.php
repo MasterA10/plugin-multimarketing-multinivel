@@ -42,19 +42,28 @@ class Expressive_Woo_Audit {
 	 */
 	public function maybe_force_order_completed( $order_id, $from, $to, $order ) {
 		static $forcing_completed = false;
-		
+
 		if ( $forcing_completed ) return;
 		if ( ! $this->is_force_completed_enabled() ) return;
+
+		// SAFETY GUARD: Não forçar pedidos que fazem parte de assinaturas recorrentes
+		// pois isso forçaria a renovação de mensalidades que falharam no cartão de crédito.
+		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order, 'any' ) ) {
+			return;
+		}
+		if ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order ) ) {
+			return;
+		}
 
 		// Se mudar para qualquer coisa que não seja 'completed', forçamos de novo
 		if ( $to !== 'completed' ) {
 			$forcing_completed = true;
 			$order->update_status( 'completed', '[Debug] Status forçado via Elite LMS Logs.' );
 			$forcing_completed = false;
-			
-			Expressive_Logger::warning( 'WOO', "Status de Pedido FORÇADO para Concluído", array( 
-				'order_id' => $order_id, 
-				'original_status' => $to 
+
+			Expressive_Logger::warning( 'WOO', "Status de Pedido FORÇADO para Concluído", array(
+				'order_id' => $order_id,
+				'original_status' => $to
 			) );
 		}
 	}
