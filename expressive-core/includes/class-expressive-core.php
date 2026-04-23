@@ -254,9 +254,9 @@ class Expressive_Core {
 
 	public function init() {
 		// Flush rules once to fix broken links requested by user
-		if ( get_option( 'lms_needs_flush_v5' ) !== 'no' ) {
+		if ( get_option( 'lms_needs_flush_v6' ) !== 'no' ) {
 			flush_rewrite_rules();
-			update_option( 'lms_needs_flush_v5', 'no' );
+			update_option( 'lms_needs_flush_v6', 'no' );
 		}
 
 		// --- WP CRON: Sincronização Periódica da API ---

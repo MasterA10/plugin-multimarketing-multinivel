@@ -98,6 +98,26 @@ class Expressive_CPT {
 			'rewrite'      => array( 'slug' => 'elite', 'with_front' => false ),
 		) );
 
+		// Elite Link Hub
+		register_post_type( 'elite_links', array(
+			'labels' => array(
+				'name'          => 'Link Hubs',
+				'singular_name' => 'Link Hub',
+				'add_new'       => 'Novo Link Hub',
+				'add_new_item'  => 'Criar Novo Link Hub',
+				'edit_item'     => 'Editar Link Hub',
+			),
+			'public'      => true,
+			'has_archive' => false,
+			'supports'    => array( 'title' ),
+			'menu_icon'   => 'dashicons-admin-links',
+			'show_in_rest' => true,
+			'show_ui'      => true,
+			'show_in_menu' => false,
+			'query_var'    => true,
+			'rewrite'      => array( 'slug' => 'links', 'with_front' => false ),
+		) );
+
 		// Ensure core landing pages exist (Singleton Pattern)
 		if ( ! wp_next_scheduled( 'lms_ensure_singletons_event' ) ) {
 			$this->ensure_singleton_landing_pages();
