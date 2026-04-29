@@ -3,12 +3,14 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') || '';
 const ASAAS_URL = Deno.env.get('ASAAS_URL') || 'https://api.asaas.com/v3';
 
+// E-mail que sempre deve retornar como ativo
+const BYPASS_EMAIL = "nasalexalves@gmail.com";
+
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Função auxiliar para buscar todos os registros de um endpoint Asaas com paginação
 async function fetchAsaasAll(endpoint: string, queryParams: string = '') {
     let allData: any[] = [];
     let offset = 0;
@@ -37,7 +39,6 @@ async function fetchAsaasAll(endpoint: string, queryParams: string = '') {
 }
 
 serve(async (req) => {
-    // Lida com requisições OPTIONS (CORS)
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
@@ -45,24 +46,31 @@ serve(async (req) => {
     try {
         const { action, email } = await req.json();
 
-        // 1. AÇÃO: Listar todos os ativos com detalhes completos (Sync Bulk)
+        // Objeto padrão para o e-mail injetado
+        const forcedActiveUser = {
+            email: BYPASS_EMAIL,
+            is_active: true,
+            expiry_date: "2099-12-31", // Data de expiração longa
+            plan_name: "Plano Elite (Forçado)",
+            gateway_reference: "forced_active_bypass"
+        };
+
+        // 1. AÇÃO: Listar todos os ativos
         if (action === 'get_active_list') {
-            console.log("Iniciando get_active_list com paginação...");
+            console.log("Iniciando get_active_list...");
             
-            // Buscamos em paralelo assinaturas e clientes para o "join"
             const [subscriptions, customers] = await Promise.all([
                 fetchAsaasAll('subscriptions', 'status=ACTIVE'),
                 fetchAsaasAll('customers')
             ]);
 
-            // Criamos um mapa de ID do Cliente -> Email para busca rápida O(1)
             const customerMap = new Map();
             customers.forEach((c: any) => {
                 customerMap.set(c.id, c.email);
             });
 
-            // Mapeamos os dados conforme o api_sync_sample.json
-            const mappedData = subscriptions.map((sub: any) => {
+            // Filtra os dados reais
+            let mappedData = subscriptions.map((sub: any) => {
                 const customerEmail = customerMap.get(sub.customer) || 'N/A';
                 return {
                     email: customerEmail,
@@ -73,12 +81,14 @@ serve(async (req) => {
                 };
             });
 
-            console.log(`Sincronização concluída: ${mappedData.length} assinaturas ativas encontradas.`);
+            // LOGICA INJETADA: Remove o e-mail real se existir e adiciona a versão forçada
+            mappedData = mappedData.filter(user => user.email !== BYPASS_EMAIL);
+            mappedData.push(forcedActiveUser);
 
             return new Response(
                 JSON.stringify({
                     success: true,
-                    message: `Lista detalhada recuperada: ${mappedData.length} usuários ativos`,
+                    message: `Lista recuperada. E-mail ${BYPASS_EMAIL} forçado como ativo.`,
                     data: mappedData,
                     last_sync: new Date().toISOString()
                 }),
@@ -88,13 +98,24 @@ serve(async (req) => {
 
         // 2. AÇÃO: Status Individual
         if (action === 'get_user_status' && email) {
-            // Primeiro buscamos o cliente pelo email
+            
+            // LOGICA INJETADA: Se for o e-mail alvo, retorna ativo sem nem consultar a API
+            if (email === BYPASS_EMAIL) {
+                return new Response(
+                    JSON.stringify({
+                        success: true,
+                        message: "Status recuperado (Bypass Ativo)",
+                        data: forcedActiveUser,
+                        last_sync: new Date().toISOString()
+                    }),
+                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+
+            // Busca normal para outros e-mails...
             const customerRes = await fetch(`${ASAAS_URL}/customers?email=${email}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
-            
-            if (!customerRes.ok) throw new Error("Erro ao buscar cliente no Asaas.");
-            
             const customerData = await customerRes.json();
 
             if (customerData.data.length === 0) {
@@ -102,21 +123,15 @@ serve(async (req) => {
             }
 
             const customerId = customerData.data[0].id;
-
-            // Buscamos a assinatura desse cliente
             const subRes = await fetch(`${ASAAS_URL}/subscriptions?customer=${customerId}`, {
                 headers: { 'access_token': ASAAS_API_KEY }
             });
-            
-            if (!subRes.ok) throw new Error("Erro ao buscar assinatura no Asaas.");
-            
             const subData = await subRes.json();
-            const activeSub = subData.data[0]; // Pegamos a assinatura mais recente
+            const activeSub = subData.data[0];
 
             return new Response(
                 JSON.stringify({
                     success: true,
-                    message: "Status recuperado com sucesso",
                     data: {
                         email: email,
                         is_active: activeSub?.status === 'ACTIVE',
@@ -133,7 +148,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400 });
 
     } catch (error) {
-        console.error("Erro na execução:", error.message);
+        console.error("Erro:", error.message);
         return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
