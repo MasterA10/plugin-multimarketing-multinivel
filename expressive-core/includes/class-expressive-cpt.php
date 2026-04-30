@@ -141,6 +141,10 @@ class Expressive_CPT {
 				'title'    => 'CCP Academy',
 				'template' => 'ccp-academy'
 			),
+			'formacao' => array(
+				'title'    => 'Formação Completa',
+				'template' => 'formacao'
+			),
 		);
 
 		foreach ( $singletons as $slug => $data ) {

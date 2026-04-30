@@ -351,6 +351,11 @@ if ( $post_id > 0 ) {
                                         <select name="links[<?php echo $index; ?>][icon]" class="elite-select">
                                             <option value="link" <?php selected($current_icon, 'link'); ?>>Link Geral</option>
                                             <option value="instagram" <?php selected($current_icon, 'instagram'); ?>>Instagram</option>
+                                            <option value="tiktok" <?php selected($current_icon, 'tiktok'); ?>>TikTok</option>
+                                            <option value="youtube" <?php selected($current_icon, 'youtube'); ?>>YouTube</option>
+                                            <option value="twitter" <?php selected($current_icon, 'twitter'); ?>>Twitter (X)</option>
+                                            <option value="linkedin" <?php selected($current_icon, 'linkedin'); ?>>LinkedIn</option>
+                                            <option value="telegram" <?php selected($current_icon, 'telegram'); ?>>Telegram</option>
                                             <option value="whatsapp" <?php selected($current_icon, 'whatsapp'); ?>>WhatsApp</option>
                                             <option value="facebook" <?php selected($current_icon, 'facebook'); ?>>Facebook</option>
                                             <option value="shopping" <?php selected($current_icon, 'shopping'); ?>>Compras</option>
@@ -410,6 +415,11 @@ jQuery(document).ready(function($) {
                         <select name="links[${nextIndex}][icon]" class="elite-select">
                             <option value="link">Link Geral</option>
                             <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="twitter">Twitter (X)</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="telegram">Telegram</option>
                             <option value="whatsapp">WhatsApp</option>
                             <option value="facebook">Facebook</option>
                             <option value="shopping">Compras</option>
