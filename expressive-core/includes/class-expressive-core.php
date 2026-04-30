@@ -163,6 +163,10 @@ class Expressive_Core {
 			if ($template_type === 'ccp-academy') {
 				return EXPRESSIVE_CORE_PATH . 'templates/page-landing-ccp.php';
 			}
+
+			if ($template_type === 'formacao') {
+				return EXPRESSIVE_CORE_PATH . 'templates/page-landing-formacao.php';
+			}
 			
 			return EXPRESSIVE_CORE_PATH . 'templates/page-landing-gran-master.php';
 		}
@@ -428,7 +432,7 @@ class Expressive_Core {
 	 * Inject Global Modals and Indicators into the footer.
 	 */
 	public function inject_global_modals() {
-		if ( ! is_admin() ) {
+		if ( ! is_admin() && ! is_singular( 'elite_links' ) ) {
 			include EXPRESSIVE_CORE_PATH . 'templates/parts/visitor-indicator.php';
 			include EXPRESSIVE_CORE_PATH . 'templates/parts/cert-modal.php';
 

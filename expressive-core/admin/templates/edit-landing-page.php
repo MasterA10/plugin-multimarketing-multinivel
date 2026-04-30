@@ -50,6 +50,18 @@ if ($current_template === 'ccp-academy') {
         'photo_paty' => array('label' => 'Foto: Paty Batista', 'has_button' => false),
         'cta_qr' => array('label' => 'Passaporte Final (QR Code + Botão)', 'has_button' => true, 'button_default' => 'Garanta sua Vaga Agora')
     );
+} elseif ($current_template === 'formacao') {
+    $sections = array(
+        'hero' => array('label' => 'Hero (Início/Topo)', 'has_button' => true, 'button_default' => 'Quero me tornar uma autoridade'),
+        'intro' => array('label' => 'Introdução e Autoridade', 'has_button' => false),
+        'grade' => array('label' => 'Grade Curricular', 'has_button' => false),
+        'diferenciais' => array('label' => 'Diferenciais: Seja Elite', 'has_button' => false),
+        'metodologia' => array('label' => 'Metodologia', 'has_button' => false),
+        'estrategia' => array('label' => 'Foco: Estética Masculina', 'has_button' => false),
+        'agenda' => array('label' => 'Agenda de Turmas', 'has_button' => false),
+        'prova_social' => array('label' => 'Prova Social', 'has_button' => false),
+        'cta' => array('label' => 'Call to Action Final', 'has_button' => true, 'button_default' => 'Garantir minha vaga agora')
+    );
 } else {
     $sections = array(
         'hero' => array('label' => 'Hero (Início)', 'has_button' => true, 'button_default' => 'Solicitar Acesso'),
@@ -113,6 +125,7 @@ if ($current_template === 'ccp-academy') {
                                 <option value="gran-master" <?php selected($current_template, 'gran-master'); ?>>Elite Gran Master (Vendas)</option>
                                 <option value="gala" <?php selected($current_template, 'gala'); ?>>Encontro das Grans (Baile de Gala)</option>
                                 <option value="ccp-academy" <?php selected($current_template, 'ccp-academy'); ?>>CCP Academy (Formação)</option>
+                                <option value="formacao" <?php selected($current_template, 'formacao'); ?>>Formação Completa em Micropigmentação</option>
                             </select>
                         </div>
                     </div>

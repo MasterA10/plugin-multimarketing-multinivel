@@ -14,6 +14,9 @@ wp_redirect( home_url( '/area-de-membros?tab=ranking' ) );
 exit;
 
 if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'edit_posts' ) && ! get_user_meta( get_current_user_id(), '_lms_is_educator', true ) ) {
+    wp_redirect( home_url( '/area-de-membros/' ) );
+    exit;
+}
 
 $user_id = get_current_user_id();
 $user_data = get_userdata( $user_id );

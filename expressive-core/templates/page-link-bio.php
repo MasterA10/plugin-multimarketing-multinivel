@@ -256,6 +256,11 @@ $photo_url = $photo_id ? wp_get_attachment_image_url($photo_id, 'large') : '';
             color: var(--elite-gold-light);
         }
 
+        .link-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
     </style>
 </head>
 <body>
@@ -335,6 +340,6 @@ $photo_url = $photo_id ? wp_get_attachment_image_url($photo_id, 'large') : '';
         </footer>
     </div>
 
+<?php wp_footer(); ?>
 </body>
 </html>
-<?php wp_footer(); ?>

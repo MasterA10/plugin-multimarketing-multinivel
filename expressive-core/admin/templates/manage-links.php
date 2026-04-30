@@ -134,15 +134,39 @@ $status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : ''
         font-size: 0.8rem;
     }
 
-    .btn-copy {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.3);
+    .btn-elite-copy-full {
+        width: 100%;
+        background: rgba(212, 175, 55, 0.1);
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        color: #D4AF37;
+        padding: 14px;
+        border-radius: 12px;
         cursor: pointer;
-        transition: color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    .btn-copy:hover { color: #fff; }
+    .btn-elite-copy-full:hover {
+        background: #D4AF37;
+        color: #000;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(212, 175, 55, 0.15);
+    }
+
+    .btn-elite-copy-full .dashicons {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
 
     .elite-actions {
         display: grid;
@@ -225,46 +249,51 @@ $status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : ''
                 <?php echo $status === 'saved' ? 'Sua Bio foi salva com sucesso!' : 'Página removida permanentemente.'; ?>
             </div>
         </div>
-        <script>
-            setTimeout(() => { jQuery('.elite-status').fadeOut(); }, 4000);
-            
-            function copyEliteUrl(btn, text) {
-                var $btn = jQuery(btn);
-                var originalHtml = $btn.html();
-                
-                // Try modern API
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        showSuccess($btn, originalHtml);
-                    });
-                } else {
-                    // Fallback for non-secure contexts (Local Sites)
-                    var textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.position = "fixed";
-                    textArea.style.left = "-999999px";
-                    textArea.style.top = "-999999px";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        showSuccess($btn, originalHtml);
-                    } catch (err) {
-                        console.error('Falha ao copiar', err);
-                    }
-                    document.body.removeChild(textArea);
-                }
-            }
+        <script>setTimeout(() => { jQuery('.elite-status').fadeOut(); }, 4000);</script>
+    <?php endif; ?>
 
-            function showSuccess($btn, originalHtml) {
-                $btn.html('<span class="dashicons dashicons-yes" style="color: #D4AF37;"></span>');
-                setTimeout(function() {
+    <script>
+        function copyEliteUrl(btn, text) {
+            const $btn = jQuery(btn);
+            const originalHtml = $btn.html();
+            
+            const handleSuccess = () => {
+                $btn.html('<span class="dashicons dashicons-yes"></span> Link Copiado!');
+                $btn.css({'background': '#D4AF37', 'color': '#000'});
+                setTimeout(() => {
                     $btn.html(originalHtml);
+                    $btn.css({'background': '', 'color': ''});
                 }, 2000);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(handleSuccess).catch(err => {
+                    console.error('Erro ao copiar: ', err);
+                    fallbackCopy(text, handleSuccess);
+                });
+            } else {
+                fallbackCopy(text, handleSuccess);
             }
-        </script>
-<?php endif; ?>
+        }
+
+        function fallbackCopy(text, callback) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                callback();
+            } catch (err) {
+                console.error('Fallback erro ao copiar', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    </script>
 
     <div class="elite-grid">
         <?php if ( $links_query->have_posts() ) : ?>
@@ -289,10 +318,12 @@ $status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : ''
 
                     <div class="elite-url-box">
                         <code><?php echo esc_url($full_url); ?></code>
-                        <button class="btn-copy" onclick="copyEliteUrl(this, '<?php echo esc_url($full_url); ?>')" title="Copiar URL">
-                            <span class="dashicons dashicons-admin-page"></span>
-                        </button>
                     </div>
+
+                    <button class="btn-elite-copy-full" onclick="copyEliteUrl(this, '<?php echo esc_url($full_url); ?>')">
+                        <span class="dashicons dashicons-admin-page"></span>
+                        Copiar Link da Bio
+                    </button>
 
                     <div class="elite-actions">
                         <a href="<?php echo admin_url('admin.php?page=elite-links&action=edit&post_id=' . get_the_ID()); ?>" class="btn-elite-secondary">
