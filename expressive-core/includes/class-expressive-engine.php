@@ -30,6 +30,9 @@ class Expressive_Engine {
 		add_action( 'wp_ajax_lms_approve_role_upgrade', array( $this, 'ajax_approve_role_upgrade' ) );
 		add_action( 'wp_ajax_lms_change_member_role', array( $this, 'ajax_change_member_role' ) );
 
+		// Subscription Management
+		add_action( 'wp_ajax_lms_cancel_subscription_request', array( $this, 'ajax_cancel_subscription_request' ) );
+
 		// WooCommerce Checkout Discounts
 		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'apply_lms_discounts' ), 99999, 1 );
 	}
@@ -796,6 +799,26 @@ class Expressive_Engine {
 		) );
 
 		wp_send_json_success( 'Categoria alterada para ' . ucfirst($new_role) . '!' );
+	}
+
+	/**
+	 * AJAX: Request subscription cancellation.
+	 */
+	public function ajax_cancel_subscription_request() {
+		check_ajax_referer( 'lms_engine_nonce', 'nonce' );
+		
+		if ( ! is_user_logged_in() ) wp_send_json_error( 'Acesso negado.' );
+
+		$user_id = get_current_user_id();
+		$reason = isset( $_POST['reason'] ) ? sanitize_textarea_field( $_POST['reason'] ) : 'Motivo não especificado';
+
+		$success = Expressive_External_API::cancel_subscription( $user_id, $reason );
+
+		if ( $success ) {
+			wp_send_json_success( 'Sua solicitação de cancelamento foi processada com sucesso.' );
+		} else {
+			wp_send_json_error( Expressive_External_API::$last_error ?: 'Não foi possível processar o cancelamento via API.' );
+		}
 	}
 
 }

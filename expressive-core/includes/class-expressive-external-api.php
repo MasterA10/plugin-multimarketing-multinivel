@@ -9,11 +9,11 @@ class Expressive_External_API {
      */
     public static function check_user_status( $user_id ) {
         self::$last_error = '';
-        $api_url   = get_option( 'lms_external_api_url' );
+        $api_url   = get_option( 'lms_external_api_url_status' ) ?: get_option( 'lms_external_api_url' ); // Fallback to legacy
         $api_token = get_option( 'lms_external_api_token' );
 
         if ( ! $api_url ) {
-            self::$last_error = 'URL da API não configurada.';
+            self::$last_error = 'URL da API de Status não configurada.';
             return null;
         }
 
@@ -79,11 +79,11 @@ class Expressive_External_API {
      */
     public static function sync_all_users_status() {
         self::$last_error = '';
-        $api_url   = get_option( 'lms_external_api_url' );
+        $api_url   = get_option( 'lms_external_api_url_sync' ) ?: get_option( 'lms_external_api_url' ); // Fallback
         $api_token = get_option( 'lms_external_api_token' );
 
         if ( ! $api_url ) {
-            self::$last_error = 'URL da API ausente.';
+            self::$last_error = 'URL da API de Sincronização ausente.';
             return false;
         }
 
@@ -148,10 +148,10 @@ class Expressive_External_API {
             foreach ( $users as $user ) {
                 $email = strtolower( trim( $user->user_email ) );
                 $is_active = isset( $active_users_data[$email] );
-                
+
                 update_user_meta( $user->ID, '_lms_elite_api_status', $is_active ? 'active' : 'inactive' );
                 update_user_meta( $user->ID, '_lms_elite_api_last_check', time() );
-                
+
                 if ( $is_active ) {
                     $u_data = $active_users_data[$email];
                     if ( !empty( $u_data['expiry_date'] ) ) {
@@ -163,7 +163,7 @@ class Expressive_External_API {
                     if ( !empty( $u_data['gateway_reference'] ) ) {
                         update_user_meta( $user->ID, '_lms_elite_api_gateway_ref', sanitize_text_field( $u_data['gateway_reference'] ) );
                     }
-                    
+
                     // Se a API confirma que é ativo, remove bloqueio automático (mas preserva bloqueio manual do admin)
                     $manual = get_user_meta( $user->ID, '_lms_elite_manual_status', true );
                     if ( $manual !== 'blocked' ) {
@@ -177,6 +177,68 @@ class Expressive_External_API {
 
         self::$last_error = 'O servidor retornou um JSON válido, mas a lista de membros não foi encontrada na estrutura.';
         Expressive_Logger::error( 'API', self::$last_error, array( 'received_json' => $body ) );
+        return false;
+    }
+
+    /**
+     * Request a subscription cancellation via External API.
+     */
+    public static function cancel_subscription( $user_id, $reason = '' ) {
+        self::$last_error = '';
+        $api_url   = get_option( 'lms_external_api_url_cancel' );
+        $api_token = get_option( 'lms_external_api_token' );
+
+        if ( ! $api_url ) {
+            self::$last_error = 'URL da API de Cancelamento não configurada.';
+            return false;
+        }
+
+        $user = get_userdata( $user_id );
+        if ( ! $user ) return false;
+
+        $payload = array(
+            'action' => 'cancel_subscription',
+            'email'  => $user->user_email,
+            'reason' => $reason
+        );
+
+        Expressive_Logger::info( 'API', "Iniciando solicitação de cancelamento", array( 'user_id' => $user_id, 'email' => $user->user_email, 'reason' => $reason ) );
+
+        $response = wp_remote_post( $api_url, array(
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $api_token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => 'application/json',
+            ),
+            'body'    => wp_json_encode( $payload ),
+            'timeout' => 20
+        ) );
+
+        if ( is_wp_error( $response ) ) {
+            self::$last_error = "Erro de rede no cancelamento: " . $response->get_error_message();
+            Expressive_Logger::error( 'API', self::$last_error, array( 'user_id' => $user_id ) );
+            return false;
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $code = wp_remote_retrieve_response_code( $response );
+        $data = json_decode( $body, true );
+
+        if ( $code !== 200 ) {
+            self::$last_error = $data['message'] ?? $data['error'] ?? "Erro HTTP $code no cancelamento.";
+            Expressive_Logger::error( 'API', "Falha no cancelamento da assinatura", array( 'user_id' => $user_id, 'body' => $body ) );
+            return false;
+        }
+
+        if ( isset( $data['success'] ) && $data['success'] ) {
+            Expressive_Logger::info( 'API', "Assinatura cancelada com sucesso via API", array( 'user_id' => $user_id ) );
+            // Mark as inactive but access logic will handle the grace period based on expiry meta
+            update_user_meta( $user_id, '_lms_elite_api_status', 'inactive' );
+            update_user_meta( $user_id, '_lms_cancellation_reason', $reason );
+            return true;
+        }
+
+        self::$last_error = $data['message'] ?? 'A API não confirmou o sucesso do cancelamento.';
         return false;
     }
 }

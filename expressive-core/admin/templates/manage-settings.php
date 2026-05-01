@@ -25,6 +25,20 @@ if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycl
     if (isset( $_POST['capped_discount_products'] )) {
         update_option( 'lms_capped_discount_products', sanitize_text_field( $_POST['capped_discount_products'] ) );
     }
+    // External API Infrastructure
+    if ( isset( $_POST['api_url_status'] ) ) {
+        update_option( 'lms_external_api_url_status', esc_url_raw( $_POST['api_url_status'] ) );
+    }
+    if ( isset( $_POST['api_url_sync'] ) ) {
+        update_option( 'lms_external_api_url_sync', esc_url_raw( $_POST['api_url_sync'] ) );
+    }
+    if ( isset( $_POST['api_url_cancel'] ) ) {
+        update_option( 'lms_external_api_url_cancel', esc_url_raw( $_POST['api_url_cancel'] ) );
+    }
+    if ( isset( $_POST['api_token'] ) ) {
+        update_option( 'lms_external_api_token', sanitize_text_field( $_POST['api_token'] ) );
+    }
+
     $all_eligible = isset( $_POST['all_products_eligible'] ) ? 'yes' : 'no';
     update_option( 'lms_all_products_eligible', $all_eligible );
 
@@ -220,6 +234,84 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
                     Executar Marco Zero (Reset Geral)
                 </button>
             </form>
+        </div>
+
+        <!-- Elite API Infrastructure Card -->
+        <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
+            <h3 class="text-xl font-bold font-serif italic mb-6 flex items-center gap-3" style="color: #D4AF37 !important;">
+                <span class="w-2 h-6 bg-gold-500 rounded-full"></span>
+                Elite API Infrastructure
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Endpoint: Consulta de Status (Single)</label>
+                    <input name="api_url_status" type="url" value="<?php echo esc_attr( get_option('lms_external_api_url_status') ); ?>" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Endpoint: Sincronização Global (Bulk)</label>
+                    <input name="api_url_sync" type="url" value="<?php echo esc_attr( get_option('lms_external_api_url_sync') ); ?>" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Endpoint: Solicitação de Cancelamento</label>
+                    <input name="api_url_cancel" type="url" value="<?php echo esc_attr( get_option('lms_external_api_url_cancel') ); ?>" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Bearer Token de Autenticação</label>
+                    <input name="api_token" type="password" value="<?php echo esc_attr( get_option('lms_external_api_token') ); ?>" placeholder="Bearer Token..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
+                </div>
+            </div>
+
+            <!-- Technical Specification (Accordion-style) -->
+            <div class="bg-black/40 rounded-2xl border border-white/5 p-6">
+                <h4 class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
+                    <span class="dashicons dashicons-editor-code text-xs"></span> 
+                    Especificação Técnica JSON (Elite Pay)
+                </h4>
+                
+                <div class="space-y-4">
+                    <details class="group">
+                        <summary class="text-xs text-gold-500/70 hover:text-gold-500 cursor-pointer font-bold uppercase tracking-tight list-none flex items-center justify-between">
+                            1. Requisição de Status / Cancelamento (Payload)
+                            <span class="text-zinc-700 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <pre class="mt-4 p-4 bg-black/60 rounded-xl text-[10px] text-zinc-400 font-mono overflow-x-auto border border-white/5">
+{
+  "action": "get_user_status" | "cancel_subscription",
+  "email": "usuario@exemplo.com",
+  "reason": "String (Apenas no cancelamento)"
+}</pre>
+                    </details>
+
+                    <details class="group">
+                        <summary class="text-xs text-gold-500/70 hover:text-gold-500 cursor-pointer font-bold uppercase tracking-tight list-none flex items-center justify-between">
+                            2. Resposta Esperada (Status)
+                            <span class="text-zinc-700 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <pre class="mt-4 p-4 bg-black/60 rounded-xl text-[10px] text-zinc-400 font-mono overflow-x-auto border border-white/5">
+{
+  "success": true,
+  "data": {
+    "is_active": true,
+    "expiry_date": "YYYY-MM-DD",
+    "plan_name": "Premium"
+  }
+}</pre>
+                    </details>
+
+                    <details class="group">
+                        <summary class="text-xs text-gold-500/70 hover:text-gold-500 cursor-pointer font-bold uppercase tracking-tight list-none flex items-center justify-between">
+                            3. Resposta Esperada (Cancelamento)
+                            <span class="text-zinc-700 group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <pre class="mt-4 p-4 bg-black/60 rounded-xl text-[10px] text-zinc-400 font-mono overflow-x-auto border border-white/5">
+{
+  "success": true,
+  "message": "Assinatura cancelada com sucesso. Acesso garantido até YYYY-MM-DD."
+}</pre>
+                    </details>
+                </div>
+            </div>
         </div>
 
         <!-- System Info Card -->

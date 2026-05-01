@@ -238,6 +238,11 @@ $visibility_meta_query = array(
                 <span class="text-sm font-medium">Calendário de Lives</span>
             </a>
             
+            <a href="javascript:void(0)" onclick="switchTab('subscription', this)" class="tab-link flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-white transition-all group">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                <span class="text-sm font-medium">Minha Assinatura</span>
+            </a>
+            
             <a href="<?php echo home_url('/equipe-academia'); ?>" target="_blank" class="flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-gold-500 transition-all group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 <span class="text-sm font-medium">Equipe Academia</span>
@@ -714,6 +719,84 @@ $visibility_meta_query = array(
                 </div>
             </div>
             <?php endif; ?>
+
+            <!-- TAB: ASSINATURA -->
+            <div id="tab-subscription" class="tab-content hidden space-y-12 animate-fade-in pb-20">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-3xl font-bold font-serif italic text-gold-500">💎 Minha Assinatura Elite</h3>
+                        <p class="text-xs text-gray-500 mt-1">Gerencie seu plano e acesso à plataforma.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Status Card -->
+                    <div class="glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden group">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/5 rounded-full blur-3xl"></div>
+                        
+                        <div class="relative z-10">
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Status do Plano</span>
+                            
+                            <?php 
+                            $api_status = get_user_meta($user_id, '_lms_elite_api_status', true);
+                            $plan_name = get_user_meta($user_id, '_lms_elite_api_plan', true) ?: 'Plano Elite';
+                            $expiry_date = get_user_meta($user_id, '_lms_elite_api_expiry', true);
+                            $is_cancelled = ($api_status === 'inactive' && $expiry_date && strtotime($expiry_date) >= time());
+                            $is_active_real = ($api_status === 'active');
+                            ?>
+
+                            <div class="flex items-center gap-6 mb-8">
+                                <div class="w-16 h-16 rounded-3xl bg-black/40 border border-white/10 flex items-center justify-center text-gold-500">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-2xl font-bold text-white"><?php echo esc_html($plan_name); ?></h4>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <?php if ($is_active_real): ?>
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Ativa / Recorrência Ligada</span>
+                                        <?php elseif ($is_cancelled): ?>
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Cancelada / Acesso até <?php echo date('d/m/Y', strtotime($expiry_date)); ?></span>
+                                        <?php else: ?>
+                                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                            <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest">Expirada / Inativa</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 pt-6 border-t border-white/5">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-zinc-500">Próxima Renovação</span>
+                                    <span class="text-white font-medium"><?php echo $expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---'; ?></span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-zinc-500">Método de Pagamento</span>
+                                    <span class="text-white font-medium italic">Cartão de Crédito / PIX</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Card -->
+                    <div class="glass p-10 rounded-[40px] border border-white/10 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Central de Ajuda</span>
+                            <h4 class="text-xl font-bold text-white mb-4 leading-relaxed">Precisa de ajuda com sua conta ou deseja alterar seu plano?</h4>
+                            <p class="text-sm text-zinc-400 leading-relaxed mb-8">Nossa equipe de suporte está pronta para te auxiliar com qualquer questão técnica ou financeira sobre sua jornada Elite.</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <a href="https://wa.me/seunumerowhatsapp" target="_blank" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-center transition-all">Falar com Suporte</a>
+                            
+                            <?php if ($is_active_real): ?>
+                                <a href="<?php echo home_url('/cancelar-assinatura/'); ?>" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all">Desejo Cancelar minha Assinatura</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- TAB: RANKING GLOBAL -->
             <div id="tab-global-ranking" class="tab-content hidden space-y-10 animate-fade-in pb-20">
