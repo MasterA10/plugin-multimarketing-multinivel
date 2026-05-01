@@ -19,8 +19,11 @@ if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycl
     if ( isset( $_POST['eligible_products'] ) ) {
         update_option( 'lms_eligible_products', sanitize_text_field( $_POST['eligible_products'] ) );
     }
-    if ( isset( $_POST['excluded_discount_products'] ) ) {
+    if (isset( $_POST['excluded_discount_products'] )) {
         update_option( 'lms_excluded_discount_products', sanitize_text_field( $_POST['excluded_discount_products'] ) );
+    }
+    if (isset( $_POST['capped_discount_products'] )) {
+        update_option( 'lms_capped_discount_products', sanitize_text_field( $_POST['capped_discount_products'] ) );
     }
     $all_eligible = isset( $_POST['all_products_eligible'] ) ? 'yes' : 'no';
     update_option( 'lms_all_products_eligible', $all_eligible );
@@ -127,6 +130,18 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
                     <?php $excluded_ids = get_option( 'lms_excluded_discount_products', '' ); ?>
                     <input name="excluded_discount_products" type="hidden" id="excluded_discount_products" value="<?php echo esc_attr( $excluded_ids ); ?>">
                     <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Os produtos listados aqui não terão desconto Elite aplicado nas regras de checkout.</p>
+                </div>
+
+                <!-- NEW: Capped at 30% Discount -->
+                <div class="space-y-3 pt-6 border-t border-white/5">
+                    <label class="text-[11px] font-bold uppercase tracking-widest text-gold-400">IDs de Produtos com Teto de 30% (Educadoras 40% → 30%)</label>
+                    <div class="tag-input-wrapper bg-black/40 border border-white/10 rounded-xl p-3 focus-within:border-gold-500/50 transition-all flex flex-wrap gap-2 items-center min-h-[56px]" id="capped-tags-container">
+                        <!-- Tags will be rendered here via JS -->
+                        <input type="text" id="capped-input-trigger" placeholder="Digite ID e Enter..." class="flex-1 bg-transparent border-none outline-none text-white text-sm min-w-[120px] p-1 font-mono">
+                    </div>
+                    <?php $capped_ids = get_option( 'lms_capped_discount_products', '' ); ?>
+                    <input name="capped_discount_products" type="hidden" id="capped_discount_products" value="<?php echo esc_attr( $capped_ids ); ?>">
+                    <p class="text-[9px] text-gray-500 italic mt-1 font-serif">Os produtos listados aqui terão o desconto limitado a 30%, mesmo para membros do nível Educadora.</p>
                 </div>
 
                 <div class="space-y-4 pt-4 border-t border-white/5">
@@ -344,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Re-render both to be safe
             initIDSys('eligible-tags-container', 'eligible-input-trigger', 'eligible_products');
             initIDSys('excluded-tags-container', 'excluded-input-trigger', 'excluded_discount_products');
+            initIDSys('capped-tags-container', 'capped-input-trigger', 'capped_discount_products');
         };
 
         trigger.addEventListener('keydown', (e) => {
@@ -369,5 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initIDSys('eligible-tags-container', 'eligible-input-trigger', 'eligible_products');
     initIDSys('excluded-tags-container', 'excluded-input-trigger', 'excluded_discount_products');
+    initIDSys('capped-tags-container', 'capped-input-trigger', 'capped_discount_products');
 });
 </script>
