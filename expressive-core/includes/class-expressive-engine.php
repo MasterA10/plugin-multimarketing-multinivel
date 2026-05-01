@@ -464,7 +464,7 @@ class Expressive_Engine {
 		// 4. Final Percent & Label calculation
 		if ( $detected_category === 'educadora' ) {
 			$discount_percent = 0.40;
-			$label = 'Desconto Elite: Educadora (40%)';
+			$label = 'Desconto Elite: Educadora CCP Diamante (40%)';
 		} elseif ( $detected_category === 'autoridade' ) {
 			$discount_percent = 0.30;
 			$label = 'Desconto Elite: Autoridade (30%)';
@@ -517,7 +517,7 @@ class Expressive_Engine {
 
 				// Adjust label if there are capped items
 				if ( $has_capped_items && $detected_category === 'educadora' ) {
-					$label = 'Desconto Elite: Educadora (Misto 30%/40%)';
+					$label = 'Desconto Elite: Educadora CCP Diamante (Misto 30%/40%)';
 				}
 
 				// TRAVA DE RESILIÊNCIA: Limpa taxas negativas anteriores (adicionadas por outros plugins ou hooks legados) para garantir o desconto exclusivo.

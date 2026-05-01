@@ -205,7 +205,7 @@ $visibility_meta_query = array(
             <h1 class="font-serif text-2xl text-gold-500 italic mb-1">Elite Members</h1>
             <p class="text-xs text-gray-500 uppercase tracking-tighter mb-4">Área de Exclusividade</p>
             <span class="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white/5 text-gold-400 border border-gold-500/10">
-                LMS: <?php echo $is_educator ? 'Educadora' : 'Autoridade'; ?>
+                LMS: <?php echo $is_educator ? 'Educadora CCP Diamante' : 'Autoridade'; ?>
             </span>
             <?php if ($my_referrer): ?>
                 <div class="mt-4 flex flex-col items-center">
@@ -300,7 +300,7 @@ $visibility_meta_query = array(
                 <div class="flex items-center gap-3">
                     <h2 class="text-xl font-semibold">Olá, <?php echo esc_html($user_data->display_name); ?>.</h2>
                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-gold-500/10 text-gold-500 border border-gold-500/20">
-                        <?php echo $is_educator ? 'Educadora' : 'Autoridade'; ?>
+                        <?php echo $is_educator ? 'Educadora CCP Diamante' : 'Autoridade'; ?>
                     </span>
                 </div>
                 <!-- Benefit & Subscription Notification -->
@@ -724,9 +724,9 @@ $visibility_meta_query = array(
                     <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/10 rounded-full blur-3xl"></div>
                     <div class="relative z-10 w-full md:w-2/3">
                         <h4 class="text-2xl font-bold text-gold-400 font-serif italic mb-2">Quer fazer parte da Elite?</h4>
-                        <p class="text-sm text-gray-300">A aba "Minha Rede", os links de indicações comissionados e as disputas no Pódio são recursos exclusivos das <strong>Educadoras</strong>. Construa hoje o seu exército de autoridades!</p>
+                        <p class="text-sm text-gray-300">A aba "Minha Rede", os links de indicações comissionados e as disputas no Pódio são recursos exclusivos das <strong>Educadoras CCP Diamante</strong>. Construa hoje o seu exército de autoridades!</p>
                     </div>
-                    <a href="<?php echo esc_url( $educator_upgrade_url ); ?>" class="relative z-10 px-8 py-4 bg-gold-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all text-center shrink-0 w-full md:w-auto">Quero Ser Educadora</a>
+                    <a href="<?php echo esc_url( $educator_upgrade_url ); ?>" class="relative z-10 px-8 py-4 bg-gold-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all text-center shrink-0 w-full md:w-auto">Quero Ser Educadora CCP Diamante</a>
                 </div>
                 <?php endif; ?>
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
