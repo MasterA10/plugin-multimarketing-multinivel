@@ -43,6 +43,19 @@ class Expressive_Access {
 			// Se temos um status da API e a verificação é recente, confia nele como verdade absoluta
 			if ( ! empty( $cached_status ) && $last_check && ( time() - (int) $last_check ) < $cache_ttl ) {
 				$is_active = ( $cached_status === 'active' );
+				
+				// --- NOVA LÓGICA: PRAZO DE GRAÇA (Grace Period) ---
+				if ( ! $is_active ) {
+					$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+					if ( $expiry_date ) {
+						$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
+						if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
+							Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO (Graça): Assinatura cancelada mas dentro do prazo de vigência", array( 'user_id' => $user_id, 'expires_at' => $expiry_date ) );
+							return true;
+						}
+					}
+				}
+
 				Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Baseado em cache de API recente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
 				return $is_active;
 			}
@@ -54,7 +67,17 @@ class Expressive_Access {
 					Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
 					return true;
 				}
+				
+				// --- RE-VERIFICA GRAÇA EM TEMPO REAL ---
 				if ( $api_status === 'inactive' ) {
+					$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+					if ( $expiry_date ) {
+						$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
+						if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
+							Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO (Graça Realtime): Assinatura inativa na API mas vigência confirmada", array( 'user_id' => $user_id, 'expires_at' => $expiry_date ) );
+							return true;
+						}
+					}
 					Expressive_Logger::warning( 'ACCESS', "Acesso NEGADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
 					return false;
 				}
@@ -62,6 +85,18 @@ class Expressive_Access {
 				// No modo silencioso (dashboard), confia no que já temos
 				if ( ! empty( $cached_status ) ) {
 					$is_active = ( $cached_status === 'active' );
+					
+					// --- RE-VERIFICA GRAÇA EM MODO SILENCIOSO ---
+					if ( ! $is_active ) {
+						$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+						if ( $expiry_date ) {
+							$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
+							if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
+								return true;
+							}
+						}
+					}
+
 					Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Modo silencioso usando cache existente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
 					return $is_active;
 				}

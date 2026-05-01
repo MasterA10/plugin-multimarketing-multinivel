@@ -205,7 +205,7 @@ $visibility_meta_query = array(
             <h1 class="font-serif text-2xl text-gold-500 italic mb-1">Elite Members</h1>
             <p class="text-xs text-gray-500 uppercase tracking-tighter mb-4">Área de Exclusividade</p>
             <span class="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white/5 text-gold-400 border border-gold-500/10">
-                LMS: <?php echo $is_educator ? 'Educadora' : 'Autoridade'; ?>
+                LMS: <?php echo $is_educator ? 'Educadora CCP Diamante' : 'Autoridade'; ?>
             </span>
             <?php if ($my_referrer): ?>
                 <div class="mt-4 flex flex-col items-center">
@@ -236,6 +236,11 @@ $visibility_meta_query = array(
             <a href="javascript:void(0)" onclick="switchTab('lives', this)" class="tab-link flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-white transition-all group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <span class="text-sm font-medium">Calendário de Lives</span>
+            </a>
+            
+            <a href="javascript:void(0)" onclick="switchTab('subscription', this)" class="tab-link flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-white transition-all group">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                <span class="text-sm font-medium">Minha Assinatura</span>
             </a>
             
             <a href="<?php echo home_url('/equipe-academia'); ?>" target="_blank" class="flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-gold-500 transition-all group">
@@ -300,7 +305,7 @@ $visibility_meta_query = array(
                 <div class="flex items-center gap-3">
                     <h2 class="text-xl font-semibold">Olá, <?php echo esc_html($user_data->display_name); ?>.</h2>
                     <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-gold-500/10 text-gold-500 border border-gold-500/20">
-                        <?php echo $is_educator ? 'Educadora' : 'Autoridade'; ?>
+                        <?php echo $is_educator ? 'Educadora CCP Diamante' : 'Autoridade'; ?>
                     </span>
                 </div>
                 <!-- Benefit & Subscription Notification -->
@@ -715,6 +720,84 @@ $visibility_meta_query = array(
             </div>
             <?php endif; ?>
 
+            <!-- TAB: ASSINATURA -->
+            <div id="tab-subscription" class="tab-content hidden space-y-12 animate-fade-in pb-20">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-3xl font-bold font-serif italic text-gold-500">💎 Minha Assinatura Elite</h3>
+                        <p class="text-xs text-gray-500 mt-1">Gerencie seu plano e acesso à plataforma.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Status Card -->
+                    <div class="glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden group">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/5 rounded-full blur-3xl"></div>
+                        
+                        <div class="relative z-10">
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Status do Plano</span>
+                            
+                            <?php 
+                            $api_status = get_user_meta($user_id, '_lms_elite_api_status', true);
+                            $plan_name = get_user_meta($user_id, '_lms_elite_api_plan', true) ?: 'Plano Elite';
+                            $expiry_date = get_user_meta($user_id, '_lms_elite_api_expiry', true);
+                            $is_cancelled = ($api_status === 'inactive' && $expiry_date && strtotime($expiry_date) >= time());
+                            $is_active_real = ($api_status === 'active');
+                            ?>
+
+                            <div class="flex items-center gap-6 mb-8">
+                                <div class="w-16 h-16 rounded-3xl bg-black/40 border border-white/10 flex items-center justify-center text-gold-500">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-2xl font-bold text-white"><?php echo esc_html($plan_name); ?></h4>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <?php if ($is_active_real): ?>
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Ativa / Recorrência Ligada</span>
+                                        <?php elseif ($is_cancelled): ?>
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Cancelada / Acesso até <?php echo date('d/m/Y', strtotime($expiry_date)); ?></span>
+                                        <?php else: ?>
+                                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                            <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest">Expirada / Inativa</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 pt-6 border-t border-white/5">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-zinc-500">Próxima Renovação</span>
+                                    <span class="text-white font-medium"><?php echo $expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---'; ?></span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-zinc-500">Método de Pagamento</span>
+                                    <span class="text-white font-medium italic">Cartão de Crédito / PIX</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Card -->
+                    <div class="glass p-10 rounded-[40px] border border-white/10 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Central de Ajuda</span>
+                            <h4 class="text-xl font-bold text-white mb-4 leading-relaxed">Precisa de ajuda com sua conta ou deseja alterar seu plano?</h4>
+                            <p class="text-sm text-zinc-400 leading-relaxed mb-8">Nossa equipe de suporte está pronta para te auxiliar com qualquer questão técnica ou financeira sobre sua jornada Elite.</p>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <a href="https://wa.me/seunumerowhatsapp" target="_blank" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-center transition-all">Falar com Suporte</a>
+                            
+                            <?php if ($is_active_real): ?>
+                                <a href="<?php echo home_url('/cancelar-assinatura/'); ?>" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all">Desejo Cancelar minha Assinatura</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB: RANKING GLOBAL -->
             <div id="tab-global-ranking" class="tab-content hidden space-y-10 animate-fade-in pb-20">
                 <?php if ( ! $is_educator ) : 
@@ -724,9 +807,9 @@ $visibility_meta_query = array(
                     <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/10 rounded-full blur-3xl"></div>
                     <div class="relative z-10 w-full md:w-2/3">
                         <h4 class="text-2xl font-bold text-gold-400 font-serif italic mb-2">Quer fazer parte da Elite?</h4>
-                        <p class="text-sm text-gray-300">A aba "Minha Rede", os links de indicações comissionados e as disputas no Pódio são recursos exclusivos das <strong>Educadoras</strong>. Construa hoje o seu exército de autoridades!</p>
+                        <p class="text-sm text-gray-300">A aba "Minha Rede", os links de indicações comissionados e as disputas no Pódio são recursos exclusivos das <strong>Educadoras CCP Diamante</strong>. Construa hoje o seu exército de autoridades!</p>
                     </div>
-                    <a href="<?php echo esc_url( $educator_upgrade_url ); ?>" class="relative z-10 px-8 py-4 bg-gold-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all text-center shrink-0 w-full md:w-auto">Quero Ser Educadora</a>
+                    <a href="<?php echo esc_url( $educator_upgrade_url ); ?>" class="relative z-10 px-8 py-4 bg-gold-500 text-black rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white transition-all text-center shrink-0 w-full md:w-auto">Quero Ser Educadora CCP Diamante</a>
                 </div>
                 <?php endif; ?>
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

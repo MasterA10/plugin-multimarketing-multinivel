@@ -119,7 +119,7 @@ $total_pages = ceil( $total_users / $per_page );
             <tbody class="divide-y divide-zinc-800/30">
                 <?php if ( ! empty( $users ) ) : foreach ( $users as $u ) : 
                     $role_id = in_array( 'educadora', (array) $u->roles ) ? 'educadora' : 'autoridade';
-                    $role_label = ($role_id === 'educadora') ? 'Educadora (40%)' : 'Autoridade (30%)';
+                    $role_label = ($role_id === 'educadora') ? 'Educadora (Até 40%)' : 'Autoridade (30%)';
                     $role_class = ($role_id === 'educadora') ? 'text-gold-500 bg-gold-500/10 border-gold-500/20' : 'text-zinc-400 bg-white/5 border-white/10';
                     $is_eligible = get_user_meta( $u->ID, '_lms_discount_eligible', true ) === 'yes';
                     

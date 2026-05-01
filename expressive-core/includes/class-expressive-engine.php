@@ -30,6 +30,9 @@ class Expressive_Engine {
 		add_action( 'wp_ajax_lms_approve_role_upgrade', array( $this, 'ajax_approve_role_upgrade' ) );
 		add_action( 'wp_ajax_lms_change_member_role', array( $this, 'ajax_change_member_role' ) );
 
+		// Subscription Management
+		add_action( 'wp_ajax_lms_cancel_subscription_request', array( $this, 'ajax_cancel_subscription_request' ) );
+
 		// WooCommerce Checkout Discounts
 		add_action( 'woocommerce_cart_calculate_fees', array( $this, 'apply_lms_discounts' ), 99999, 1 );
 	}
@@ -464,7 +467,7 @@ class Expressive_Engine {
 		// 4. Final Percent & Label calculation
 		if ( $detected_category === 'educadora' ) {
 			$discount_percent = 0.40;
-			$label = 'Desconto Elite: Educadora (40%)';
+			$label = 'Desconto Elite: Educadora CCP Diamante (40%)';
 		} elseif ( $detected_category === 'autoridade' ) {
 			$discount_percent = 0.30;
 			$label = 'Desconto Elite: Autoridade (30%)';
@@ -484,19 +487,41 @@ class Expressive_Engine {
 			$excluded_ids_raw = get_option( 'lms_excluded_discount_products', '' );
 			$excluded_ids = array_filter( array_map( 'intval', explode( ',', $excluded_ids_raw ) ) );
 			
-			$discountable_subtotal = 0;
-			$total_subtotal = $cart->get_subtotal();
+			$capped_ids_raw = get_option( 'lms_capped_discount_products', '' );
+			$capped_ids = array_filter( array_map( 'intval', explode( ',', $capped_ids_raw ) ) );
 
-			// Calculate discountable base (excluding forbidden IDs)
+			$total_discount_amount = 0;
+			$total_subtotal = $cart->get_subtotal();
+			$has_capped_items = false;
+
+			// Calculate discount item by item
 			foreach ( $cart->get_cart() as $cart_item ) {
 				$product_id = $cart_item['product_id'];
-				if ( ! in_array( $product_id, $excluded_ids ) ) {
-					$discountable_subtotal += $cart_item['line_total'];
+				
+				// Skip excluded products
+				if ( in_array( $product_id, $excluded_ids ) ) {
+					continue;
 				}
+
+				$item_price = $cart_item['line_total'];
+				$item_discount_percent = $discount_percent;
+
+				// Apply 30% cap if product is in the capped list and user is Educator (40%)
+				if ( $detected_category === 'educadora' && in_array( $product_id, $capped_ids ) ) {
+					$item_discount_percent = 0.30;
+					$has_capped_items = true;
+				}
+
+				$total_discount_amount += ( $item_price * $item_discount_percent );
 			}
 
-			if ( $discountable_subtotal > 0 ) {
-				$discount_amount = ( $discountable_subtotal * $discount_percent ) * -1;
+			if ( $total_discount_amount > 0 ) {
+				$discount_amount = $total_discount_amount * -1;
+
+				// Adjust label if there are capped items
+				if ( $has_capped_items && $detected_category === 'educadora' ) {
+					$label = 'Desconto Elite: Educadora CCP Diamante (Misto 30%/40%)';
+				}
 
 				// TRAVA DE RESILIÊNCIA: Limpa taxas negativas anteriores (adicionadas por outros plugins ou hooks legados) para garantir o desconto exclusivo.
 				$current_fees = $cart->get_fees();
@@ -512,16 +537,17 @@ class Expressive_Engine {
 				$cart->add_fee( $label, $discount_amount );
 				
 				Expressive_Logger::info( 'DISCOUNT', "Desconto aplicado", array( 
-					'user_id'     => $user_id, 
-					'category'    => $detected_category, 
-					'percent'     => ($discount_percent * 100) . '%', 
+					'user_id'       => $user_id, 
+					'category'      => $detected_category, 
+					'base_percent'  => ($discount_percent * 100) . '%', 
 					'full_subtotal' => $total_subtotal,
-					'base_subtotal' => $discountable_subtotal,
-					'discount'    => $discount_amount,
-					'excluded_ids' => $excluded_ids
+					'discount'      => $discount_amount,
+					'excluded_ids'  => $excluded_ids,
+					'capped_ids'    => $capped_ids,
+					'has_capped'    => $has_capped_items
 				) );
 			} else {
-				Expressive_Logger::debug( 'DISCOUNT', "Desconto não aplicado: Todos os produtos do carrinho estão excluídos.", array( 'excluded_ids' => $excluded_ids ) );
+				Expressive_Logger::debug( 'DISCOUNT', "Desconto não aplicado: Todos os produtos do carrinho estão excluídos ou sem valor.", array( 'excluded_ids' => $excluded_ids ) );
 			}
 		}
 	}
@@ -773,6 +799,26 @@ class Expressive_Engine {
 		) );
 
 		wp_send_json_success( 'Categoria alterada para ' . ucfirst($new_role) . '!' );
+	}
+
+	/**
+	 * AJAX: Request subscription cancellation.
+	 */
+	public function ajax_cancel_subscription_request() {
+		check_ajax_referer( 'lms_engine_nonce', 'nonce' );
+		
+		if ( ! is_user_logged_in() ) wp_send_json_error( 'Acesso negado.' );
+
+		$user_id = get_current_user_id();
+		$reason = isset( $_POST['reason'] ) ? sanitize_textarea_field( $_POST['reason'] ) : 'Motivo não especificado';
+
+		$success = Expressive_External_API::cancel_subscription( $user_id, $reason );
+
+		if ( $success ) {
+			wp_send_json_success( 'Sua solicitação de cancelamento foi processada com sucesso.' );
+		} else {
+			wp_send_json_error( Expressive_External_API::$last_error ?: 'Não foi possível processar o cancelamento via API.' );
+		}
 	}
 
 }
