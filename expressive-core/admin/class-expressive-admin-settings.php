@@ -742,4 +742,31 @@ class Expressive_Admin_Settings {
 		exit;
 	}
 
+	/**
+	 * AJAX: Update User Manual Status (Lifetime, Blocked, None)
+	 */
+	public function ajax_update_user_manual_status() {
+		check_ajax_referer( 'lms_api_mgmt_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Permissão negada.' );
+		}
+
+		$user_id = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ) : 0;
+		$status  = isset( $_POST['status'] ) ? sanitize_text_field( $_POST['status'] ) : 'none';
+
+		if ( ! $user_id ) {
+			wp_send_json_error( 'Usuário inválido.' );
+		}
+
+		// Use the centralized method from Expressive_Access
+		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-access.php';
+		Expressive_Access::update_access_status( $user_id, $status );
+
+		// Log the action
+		Expressive_Logger::info( 'ADMIN', "Acesso alterado manualmente para status: $status", array( 'admin_id' => get_current_user_id(), 'target_user' => $user_id ) );
+
+		wp_send_json_success( 'Status atualizado com sucesso.' );
+	}
+
 }

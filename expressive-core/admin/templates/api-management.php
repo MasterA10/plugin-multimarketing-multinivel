@@ -212,33 +212,54 @@ $events = $wpdb->get_results( "SELECT * FROM $table_events ORDER BY created_at D
             </div>
         </div>
 
-        <!-- Right Audit Log -->
+        <!-- Right: Global User Search & Control -->
         <div class="xl:col-span-3 space-y-6">
-            <div class="glass p-8 rounded-[40px] border border-white/5 h-full relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 rounded-full blur-2xl"></div>
-                <h3 class="text-xl font-bold font-serif italic text-white flex items-center gap-3 mb-8">
-                    <span class="w-1.5 h-6 bg-zinc-800 rounded-full"></span>
-                    Audit Trail
+            <div class="glass p-8 rounded-[40px] border border-white/5 relative overflow-hidden bg-white/[0.01]">
+                <h3 class="text-xl font-bold font-serif italic text-white flex items-center gap-3 mb-6">
+                    <span class="w-1.5 h-6 bg-gold-500 rounded-full" style="background-color: #D4AF37;"></span>
+                    Controle Total
                 </h3>
+                
+                <p class="text-[10px] text-zinc-500 uppercase tracking-widest mb-4 leading-relaxed">Gerencie acesso vitalício ou bloqueios para qualquer usuário do site.</p>
 
-                <div class="space-y-4 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
-                    <?php foreach ( $events as $event ) : ?>
-                    <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl group hover:border-white/10 transition-all">
-                        <div class="flex justify-between items-start mb-2">
-                            <span class="text-[8px] font-black uppercase tracking-widest text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded-full"><?php echo str_replace('_', ' ', $event->action); ?></span>
-                            <span class="text-[8px] text-zinc-700 font-mono"><?php echo date('H:i', strtotime($event->created_at)); ?></span>
+                <div class="relative mb-6">
+                    <input type="text" id="user-global-search" onkeyup="filterGlobalUsers()" placeholder="Buscar nome ou e-mail..." class="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs focus:border-gold-500 outline-none transition-all text-white pr-12">
+                    <span class="dashicons dashicons-search absolute right-4 top-4 text-zinc-600"></span>
+                </div>
+
+                <div id="global-user-list" class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                    <?php 
+                    $all_users = get_users( array( 'number' => 100, 'orderby' => 'registered', 'order' => 'DESC' ) );
+                    foreach ( $all_users as $u ) : 
+                        $m_status = get_user_meta( $u->ID, '_lms_elite_manual_status', true ) ?: 'none';
+                    ?>
+                    <div class="user-row p-4 bg-white/[0.02] border border-white/5 rounded-2xl group hover:bg-white/[0.05] transition-all" data-search="<?php echo esc_attr( strtolower($u->display_name . ' ' . $u->user_email) ); ?>">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg overflow-hidden border border-white/10">
+                                    <?php echo get_avatar($u->ID, 32); ?>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-white truncate w-24"><?php echo esc_html($u->display_name); ?></span>
+                                    <span class="text-[8px] text-zinc-600 truncate w-24"><?php echo esc_html($u->user_email); ?></span>
+                                </div>
+                            </div>
+                            <div id="status-badge-<?php echo $u->ID; ?>">
+                                <?php if($m_status === 'blocked'): ?>
+                                    <span class="text-[7px] font-black uppercase bg-red-500/20 text-red-500 px-2 py-1 rounded-md border border-red-500/20">Bloqueado</span>
+                                <?php elseif($m_status === 'unblocked'): ?>
+                                    <span class="text-[7px] font-black uppercase bg-green-500/20 text-green-500 px-2 py-1 rounded-md border border-green-500/20">Vitalício</span>
+                                <?php else: ?>
+                                    <span class="text-[7px] font-black uppercase bg-zinc-800 text-zinc-500 px-2 py-1 rounded-md">Auto (API)</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <p class="text-[11px] text-white font-bold truncate mb-1"><?php echo esc_html($event->email); ?></p>
-                        <div class="flex items-center gap-2 text-[8px] font-mono">
-                            <span class="text-zinc-600"><?php echo $event->status_before ?: '?'; ?></span>
-                            <span class="text-zinc-800">→</span>
-                            <span class="text-zinc-300"><?php echo $event->status_after ?: '?'; ?></span>
+                        
+                        <div class="grid grid-cols-3 gap-1">
+                            <button onclick="updateManualStatus(<?php echo $u->ID; ?>, 'none', this)" class="py-2 rounded-lg text-[7px] font-bold uppercase tracking-tighter transition-all <?php echo $m_status === 'none' ? 'bg-gold-500 text-black shadow-lg shadow-gold-500/10' : 'bg-white/5 text-zinc-500 hover:bg-white/10'; ?>">Auto</button>
+                            <button onclick="updateManualStatus(<?php echo $u->ID; ?>, 'unblocked', this)" class="py-2 rounded-lg text-[7px] font-bold uppercase tracking-tighter transition-all <?php echo $m_status === 'unblocked' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-white/5 text-zinc-500 hover:bg-green-500/10 hover:text-green-500'; ?>">Vitalício</button>
+                            <button onclick="updateManualStatus(<?php echo $u->ID; ?>, 'blocked', this)" class="py-2 rounded-lg text-[7px] font-bold uppercase tracking-tighter transition-all <?php echo $m_status === 'blocked' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'bg-white/5 text-zinc-500 hover:bg-red-500/10 hover:text-red-500'; ?>">Bloquear</button>
                         </div>
-                        <?php if($event->reason) : ?>
-                            <p class="mt-2 text-[9px] text-zinc-500 italic leading-snug border-t border-white/5 pt-2">
-                                "<?php echo esc_html($event->reason); ?>"
-                            </p>
-                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -282,6 +303,41 @@ $events = $wpdb->get_results( "SELECT * FROM $table_events ORDER BY created_at D
             } else {
                 alert(data.data || 'Erro fatal na comunicação.');
                 btn.innerHTML = 'Tentar Novamente';
+                btn.disabled = false;
+            }
+        });
+    }
+
+    function filterGlobalUsers() {
+        const query = document.getElementById('user-global-search').value.toLowerCase();
+        document.querySelectorAll('.user-row').forEach(row => {
+            const text = row.getAttribute('data-search');
+            row.style.display = text.includes(query) ? 'block' : 'none';
+        });
+    }
+
+    function updateManualStatus(userId, status, btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '...';
+        btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('action', 'lms_update_user_manual_status');
+        formData.append('nonce', '<?php echo wp_create_nonce("lms_api_mgmt_nonce"); ?>');
+        formData.append('user_id', userId);
+        formData.append('status', status);
+
+        fetch(ajax_url, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Flash success state then reload or update UI
+                btn.style.backgroundColor = '#D4AF37';
+                btn.style.color = '#000';
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                alert(data.data || 'Erro ao atualizar.');
+                btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         });

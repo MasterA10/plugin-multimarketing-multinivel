@@ -64,6 +64,8 @@ class Expressive_Core {
 		add_action( 'admin_post_lms_delete_lp', array( $settings, 'handle_landing_page_delete' ) );
 		add_action( 'wp_ajax_lms_update_module_and_lesson_order', array( $settings, 'ajax_update_module_and_lesson_order' ) );
 
+		add_action( 'wp_ajax_lms_update_user_manual_status', array( $settings, 'ajax_update_user_manual_status' ) );
+		
 		// Middleware & Engine
 		add_action( 'template_redirect', array( $access, 'protect_content_middleware' ) );
 		add_action( 'init', array( $engine, 'handle_safe_download' ) );
