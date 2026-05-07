@@ -163,35 +163,63 @@ $events = $wpdb->get_results( "SELECT * FROM $table_events ORDER BY created_at D
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-white/5">
-                        <?php foreach ( $subscriptions as $sub ) : ?>
-                        <tr class="hover:bg-white/[0.03] transition-all group">
+                        <?php foreach ( $subscriptions as $sub ) : 
+                            $target_user = get_user_by('email', $sub->email);
+                            $manual_status = $target_user ? get_user_meta($target_user->ID, '_lms_elite_manual_status', true) : 'none';
+                            $is_manual = ($manual_status !== 'none' && $manual_status !== '');
+                        ?>
+                        <tr class="hover:bg-white/[0.03] transition-all group <?php echo $is_manual ? 'bg-gold-500/[0.02]' : ''; ?>">
                             <td class="px-8 py-5">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-bold text-white"><?php echo esc_html($sub->email); ?></span>
-                                    <span class="text-[9px] text-zinc-600 uppercase font-bold tracking-tighter"><?php echo esc_html($sub->plan_name ?: 'Elite Member'); ?></span>
+                                    <span class="text-[9px] text-zinc-600 uppercase font-bold tracking-tighter">
+                                        <?php 
+                                        if ($manual_status === 'unblocked') echo '<span class="text-gold-500">Acesso Vitalício</span>';
+                                        elseif ($manual_status === 'blocked') echo '<span class="text-red-500">Bloqueio Manual</span>';
+                                        else echo esc_html($sub->plan_name ?: 'Elite Member'); 
+                                        ?>
+                                    </span>
                                 </div>
                             </td>
                             <td class="px-8 py-5 text-center">
                                 <?php 
+                                    $display_status = $sub->status;
                                     $status_class = 'bg-zinc-800 text-zinc-400';
-                                    if($sub->status === 'active') $status_class = 'bg-green-500/10 text-green-500 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]';
-                                    if($sub->status === 'grace_period') $status_class = 'bg-gold-500/10 text-gold-500 border border-gold-500/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]';
-                                    if($sub->status === 'cancelled') $status_class = 'bg-red-500/10 text-red-500 border border-red-500/20';
+                                    
+                                    if ($manual_status === 'unblocked') {
+                                        $display_status = 'VITALÍCIO';
+                                        $status_class = 'bg-gold-500/20 text-gold-500 border border-gold-500/30 shadow-[0_0_15px_rgba(212,175,55,0.1)]';
+                                    } elseif ($manual_status === 'blocked') {
+                                        $display_status = 'BLOQUEADO';
+                                        $status_class = 'bg-red-600/20 text-red-500 border border-red-600/30';
+                                    } else {
+                                        if($sub->status === 'active') $status_class = 'bg-green-500/10 text-green-500 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]';
+                                        if($sub->status === 'grace_period') $status_class = 'bg-gold-500/10 text-gold-500 border border-gold-500/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]';
+                                        if($sub->status === 'cancelled') $status_class = 'bg-red-500/10 text-red-500 border border-red-500/20';
+                                    }
                                 ?>
                                 <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest <?php echo $status_class; ?>">
-                                    <?php echo str_replace('_', ' ', $sub->status); ?>
+                                    <?php echo str_replace('_', ' ', $display_status); ?>
                                 </span>
                             </td>
                             <td class="px-8 py-5 text-center">
                                 <div class="flex flex-col">
-                                    <span class="text-[11px] text-white"><?php echo $sub->access_expires_at ? date('d/m/Y', strtotime($sub->access_expires_at)) : '—'; ?></span>
-                                    <?php if($sub->status === 'grace_period') : ?>
+                                    <span class="text-[11px] text-white">
+                                        <?php 
+                                        if ($manual_status === 'unblocked') echo 'NUNCA';
+                                        elseif ($manual_status === 'blocked') echo 'IMEDIATO';
+                                        else echo ($sub->access_expires_at ? date('d/m/Y', strtotime($sub->access_expires_at)) : '—'); 
+                                        ?>
+                                    </span>
+                                    <?php if($sub->status === 'grace_period' && !$is_manual) : ?>
                                         <span class="text-[8px] text-gold-500 font-bold uppercase">Grace até <?php echo date('d/m/Y', strtotime($sub->grace_ends_at)); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </td>
                             <td class="px-8 py-5 text-center">
-                                <span class="text-[9px] font-mono text-zinc-600"><?php echo date('d/m H:i', strtotime($sub->last_sync_at)); ?></span>
+                                <span class="text-[9px] font-mono text-zinc-600">
+                                    <?php echo $is_manual ? 'Manual' : date('d/m H:i', strtotime($sub->last_sync_at)); ?>
+                                </span>
                             </td>
                             <td class="px-8 py-5 text-right">
                                 <div class="flex justify-end gap-2">
