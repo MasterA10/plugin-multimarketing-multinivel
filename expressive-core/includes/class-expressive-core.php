@@ -124,7 +124,7 @@ class Expressive_Core {
 
 		if ( is_page() ) {
 			$page_type = get_post_meta( get_the_ID(), '_lms_page_type', true );
-			if ( in_array( $page_type, array( 'login', 'area-de-membros', 'dashboard-educador', 'cancelar-assinatura' ), true ) ) {
+			if ( in_array( $page_type, array( 'login', 'area-de-membros', 'dashboard-educador' ) ) ) {
 				$is_lms_page = true;
 				$is_dashboard = true;
 			}
@@ -153,13 +153,6 @@ class Expressive_Core {
 	public function template_loader( $template ) {
 		$request_uri = untrailingslashit( $_SERVER['REQUEST_URI'] );
 		
-		// Force cancellation page even if 404
-		if ( strpos( $request_uri, 'cancelar-assinatura' ) !== false ) {
-			status_header( 200 );
-			global $wp_query;
-			if ( $wp_query ) $wp_query->is_404 = false;
-			return EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
-		}
 
 		if ( is_singular( 'elite_links' ) ) {
 			return EXPRESSIVE_CORE_PATH . 'templates/page-link-bio.php';
@@ -232,9 +225,6 @@ class Expressive_Core {
 					case 'dashboard-educador':
 						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-educator-dashboard.php';
 						break;
-					case 'cancelar-assinatura':
-						$custom_template = EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
-						break;
 					case 'adquirir-acesso':
 						wp_safe_redirect( home_url( '/elite/ccp-academy/' ), 301 );
 						exit;
@@ -281,8 +271,6 @@ class Expressive_Core {
 			update_option( 'expressive_core_db_version', EXPRESSIVE_CORE_VERSION );
 			flush_rewrite_rules();
 		}
-
-		$this->ensure_required_pages();
 
 		// Flush rules once to fix broken links requested by user
 		if ( get_option( 'lms_needs_flush_v7' ) !== 'no' ) {
@@ -499,30 +487,13 @@ class Expressive_Core {
 	 * Register public virtual pages handled by the plugin.
 	 */
 	public function register_rewrite_routes() {
-		add_rewrite_rule( '^cancelar-assinatura/?$', 'index.php?expressive_cancel_subscription=1', 'top' );
 	}
 
 	/**
 	 * Allow custom rewrite vars to reach template_redirect.
 	 */
 	public function register_query_vars( $vars ) {
-		$vars[] = 'expressive_cancel_subscription';
 		return $vars;
-	}
-
-	/**
-	 * Keep required plugin pages available even when the plugin is updated without reactivation.
-	 */
-	private function ensure_required_pages() {
-		$page = get_page_by_path( 'cancelar-assinatura', OBJECT, 'page' );
-		if ( isset( $page->ID ) && $page->post_status === 'publish' && get_post_meta( $page->ID, '_lms_page_type', true ) === 'cancelar-assinatura' ) {
-			return;
-		}
-
-		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-activator.php';
-		if ( Expressive_Activator::create_static_pages() ) {
-			flush_rewrite_rules( false );
-		}
 	}
 
 }

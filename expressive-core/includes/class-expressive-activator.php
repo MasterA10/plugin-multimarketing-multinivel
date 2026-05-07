@@ -140,11 +140,6 @@ class Expressive_Activator {
 				'content' => '[expressive_educator_dashboard]',
 				'slug'    => 'dashboard-educador',
 			),
-			'cancelar-assinatura' => array(
-				'title'   => 'Cancelar Assinatura',
-				'content' => 'Página de cancelamento de assinatura elite.',
-				'slug'    => 'cancelar-assinatura',
-			),
 		);
 
 		foreach ( $pages as $slug => $data ) {
