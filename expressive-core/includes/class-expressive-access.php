@@ -29,12 +29,26 @@ class Expressive_Access {
 
 		if ( $local ) {
 			if ( $local->status === 'active' ) {
+				// --- TRAVA DE SEGURANÇA (FALLBACK CONFIGURÁVEL) ---
+				$fallback_days = get_option( 'lms_hard_fallback_days', 30 );
+				$expires = strtotime( $local->access_expires_at . ' 23:59:59' );
+				$hard_limit = intval( $fallback_days ) * DAY_IN_SECONDS;
+				
+				if ( $expires && ( $expires + $hard_limit ) < time() ) {
+					Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Status 'active' ignorado pois a expiração (" . $local->access_expires_at . ") excedeu o limite de segurança de $fallback_days dias.", array( 'user_id' => $user_id ) );
+					return false;
+				}
+
 				Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Status 'active' na tabela local", array( 'user_id' => $user_id ) );
 				return true;
 			}
 
 			if ( $local->status === 'grace_period' ) {
+				$grace_days = get_option( 'lms_grace_period_days', 7 );
 				$grace_ends = strtotime( $local->grace_ends_at . ' 23:59:59' );
+				
+				// Optional: Extra tolerance based on settings if needed, but usually grace_ends_at is already calculated by the API.
+				// However, if we want to force a maximum period from expiry:
 				if ( $grace_ends && $grace_ends >= time() ) {
 					Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Grace Period ativo até " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
 					return true;
