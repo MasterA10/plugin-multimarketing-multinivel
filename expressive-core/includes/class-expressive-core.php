@@ -265,22 +265,25 @@ class Expressive_Core {
 
 		// --- WP CRON: Sincronização Periódica da API ---
 		add_action( 'lms_api_periodic_sync_task', array( 'Expressive_External_API', 'sync_all_users_status' ) );
+		add_action( 'elite_daily_subscription_cleanup_task', array( new Expressive_Engine(), 'elite_daily_subscription_cleanup' ) );
 
 		$configured_interval = max( 180, intval( get_option( 'lms_api_sync_interval', 3 ) ) * 60 );
 		$next_scheduled = wp_next_scheduled( 'lms_api_periodic_sync_task' );
 
 		if ( ! $next_scheduled ) {
-			// Nenhum evento agendado — cria pela primeira vez
 			wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
 		} else {
-			// Verifica se o intervalo mudou nas configurações
 			$stored_interval = get_option( 'lms_api_cron_interval_seconds', 0 );
 			if ( (int) $stored_interval !== $configured_interval ) {
-				// Intervalo mudou — reagenda com o novo valor
 				wp_clear_scheduled_hook( 'lms_api_periodic_sync_task' );
 				wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
 				update_option( 'lms_api_cron_interval_seconds', $configured_interval );
 			}
+		}
+
+		// --- WP CRON: Cleanup Diário de Grace Period ---
+		if ( ! wp_next_scheduled( 'elite_daily_subscription_cleanup_task' ) ) {
+			wp_schedule_event( time(), 'daily', 'elite_daily_subscription_cleanup_task' );
 		}
 	}
 

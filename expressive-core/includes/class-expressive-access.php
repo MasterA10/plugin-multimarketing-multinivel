@@ -11,108 +11,66 @@ class Expressive_Access {
 			$user_id = get_current_user_id();
 		}
 
-		if ( ! $user_id ) {
-			return false;
-		}
+		if ( ! $user_id ) return false;
 
 		// --- 1. PASSE ADMINISTRATIVO VITALÍCIO ---
-		if ( user_can( $user_id, 'manage_options' ) ) {
-			Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Bypass Administrativo detectado", array( 'user_id' => $user_id ) );
-			return true;
-		}
+		if ( user_can( $user_id, 'manage_options' ) ) return true;
 
 		// --- 2. SOBRESCRITA MANUAL (ADMIN OVERDRIVE) ---
 		$manual_status = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
-		if ( $manual_status === 'blocked' ) {
-			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Sobreposição manual 'BLOQUEADO' ativa", array( 'user_id' => $user_id ) );
-			return false;
-		}
-		if ( $manual_status === 'unblocked' ) {
-			Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO: Sobreposição manual 'LIBERADO' ativa", array( 'user_id' => $user_id ) );
-			return true;
-		}
+		if ( $manual_status === 'blocked' ) return false;
+		if ( $manual_status === 'unblocked' ) return true;
 
-		// --- 3. API EXTERNA (Cache Inteligente) ---
-		$api_url = get_option( 'lms_external_api_url', '' );
-		if ( ! empty( $api_url ) && class_exists( 'Expressive_External_API' ) ) {
-			$cached_status = get_user_meta( $user_id, '_lms_elite_api_status', true );
-			$last_check    = get_user_meta( $user_id, '_lms_elite_api_last_check', true );
-			$sync_interval = get_option( 'lms_api_sync_interval', 3 );
-			$cache_ttl     = max( $sync_interval * MINUTE_IN_SECONDS * 2, HOUR_IN_SECONDS );
+		// --- 3. NOVA VERDADE: TABELA LOCAL DE ACESSO ---
+		global $wpdb;
+		$user = get_userdata( $user_id );
+		$table = $wpdb->prefix . 'elite_subscription_access';
+		$local = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", $user->user_email ) );
 
-			// Se temos um status da API e a verificação é recente, confia nele como verdade absoluta
-			if ( ! empty( $cached_status ) && $last_check && ( time() - (int) $last_check ) < $cache_ttl ) {
-				$is_active = ( $cached_status === 'active' );
-				
-				// --- NOVA LÓGICA: PRAZO DE GRAÇA (Grace Period) ---
-				if ( ! $is_active ) {
-					$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
-					if ( $expiry_date ) {
-						$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
-						if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
-							Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO (Graça): Assinatura cancelada mas dentro do prazo de vigência", array( 'user_id' => $user_id, 'expires_at' => $expiry_date ) );
-							return true;
-						}
-					}
-				}
-
-				Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Baseado em cache de API recente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
-				return $is_active;
+		if ( $local ) {
+			if ( $local->status === 'active' ) {
+				Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Status 'active' na tabela local", array( 'user_id' => $user_id ) );
+				return true;
 			}
 
-			// Cache expirado ou sem cache: tenta verificação em tempo real (SÓ SE PERMITIDO)
-			if ( $allow_api ) {
-				$api_status = Expressive_External_API::check_user_status( $user_id );
-				if ( $api_status === 'active' ) {
-					Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
+			if ( $local->status === 'grace_period' ) {
+				$grace_ends = strtotime( $local->grace_ends_at . ' 23:59:59' );
+				if ( $grace_ends && $grace_ends >= time() ) {
+					Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Grace Period ativo até " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
 					return true;
 				}
-				
-				// --- RE-VERIFICA GRAÇA EM TEMPO REAL ---
-				if ( $api_status === 'inactive' ) {
-					$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
-					if ( $expiry_date ) {
-						$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
-						if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
-							Expressive_Logger::info( 'ACCESS', "Acesso LIBERADO (Graça Realtime): Assinatura inativa na API mas vigência confirmada", array( 'user_id' => $user_id, 'expires_at' => $expiry_date ) );
-							return true;
-						}
-					}
-					Expressive_Logger::warning( 'ACCESS', "Acesso NEGADO: Confirmado em tempo real via API Externa", array( 'user_id' => $user_id ) );
-					return false;
-				}
-			} else {
-				// No modo silencioso (dashboard), confia no que já temos
-				if ( ! empty( $cached_status ) ) {
-					$is_active = ( $cached_status === 'active' );
-					
-					// --- RE-VERIFICA GRAÇA EM MODO SILENCIOSO ---
-					if ( ! $is_active ) {
-						$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
-						if ( $expiry_date ) {
-							$expiry_timestamp = strtotime( $expiry_date . ' 23:59:59' );
-							if ( $expiry_timestamp && $expiry_timestamp >= time() ) {
-								return true;
-							}
-						}
-					}
+				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Grace Period expirado em " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
+				return false;
+			}
 
-					Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $is_active ? 'LIBERADO' : 'NEGADO' ) . ": Modo silencioso usando cache existente", array( 'user_id' => $user_id, 'status' => $cached_status ) );
-					return $is_active;
+			// Se temos registro local e não é active/grace, bloqueia (a menos que permitamos re-checar na API)
+			if ( ! $allow_api ) {
+				return false;
+			}
+		}
+
+		// --- 4. API EXTERNA (Se não houver registro local ou se permitido re-checar) ---
+		$api_url = get_option( 'lms_external_api_url', '' );
+		if ( ! empty( $api_url ) && class_exists( 'Expressive_External_API' ) ) {
+			// Check if we should re-sync (cache TTL)
+			$last_check = $local ? strtotime($local->last_sync_at) : 0;
+			$cache_ttl  = HOUR_IN_SECONDS * 6; // 6h default cache
+
+			if ( (time() - $last_check) > $cache_ttl && $allow_api ) {
+				$api_status = Expressive_External_API::check_user_status( $user_id );
+				// check_user_status already calls update_local_access, so we re-read the state
+				if ( $api_status === 'active' ) return true;
+				
+				// Re-verify after sync
+				$local = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", $user->user_email ) );
+				if ( $local && $local->status === 'grace_period' && strtotime($local->grace_ends_at . ' 23:59:59') >= time() ) {
+					return true;
 				}
 			}
 		}
 
-		// --- 4. STATUS LOCAL (Lógica da página Assinantes) ---
-		$local_status = get_user_meta( $user_id, '_lms_subscription_status', true );
-		if ( $local_status === 'suspended' ) {
-			Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Status local marcado como SUSPENSO", array( 'user_id' => $user_id ) );
-			return false;
-		}
-
-		// --- 5. FALLBACK PARA WOOCOMMERCE ---
+		// --- 5. FALLBACK PARA WOOCOMMERCE (Legado) ---
 		$wc_status = $this->has_active_woocommerce_subscription( $user_id );
-		Expressive_Logger::debug( 'ACCESS', "Acesso " . ( $wc_status ? 'LIBERADO' : 'NEGADO' ) . ": Verificação final via WooCommerce Fallback", array( 'user_id' => $user_id ) );
 		return $wc_status;
 	}
 

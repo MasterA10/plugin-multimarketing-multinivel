@@ -110,6 +110,15 @@ class Expressive_Admin_Settings {
 
 		add_submenu_page(
 			'expressive-lms',
+			'Gestão de Assinaturas',
+			'👥 Assinaturas',
+			'manage_options',
+			'lms-subscriptions',
+			array( $this, 'render_admin_hub' )
+		);
+
+		add_submenu_page(
+			'expressive-lms',
 			'Logs de Debug',
 			'📋 Logs de Debug',
 			'manage_options',
@@ -216,6 +225,9 @@ class Expressive_Admin_Settings {
 					break;
 				case 'elite-logs':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/view-logs.php';
+					break;
+				case 'lms-subscriptions':
+					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/subscriptions-dashboard.php';
 					break;
 				case 'elite-academy':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-academy.php';

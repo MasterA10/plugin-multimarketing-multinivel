@@ -74,7 +74,51 @@ class Expressive_Activator {
 		) $charset_collate;";
 		dbDelta( $sql_bonus );
 
-		// 4. Automatic Page Creation
+		// 4. wp_elite_subscription_access
+		$table_access = $wpdb->prefix . 'elite_subscription_access';
+		$sql_access = "CREATE TABLE $table_access (
+			id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT UNSIGNED NULL,
+			email VARCHAR(190) NOT NULL,
+			asaas_customer_id VARCHAR(100) NULL,
+			asaas_subscription_id VARCHAR(100) NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'active',
+			plan_name VARCHAR(190) NULL,
+			gateway_status VARCHAR(50) NULL,
+			access_expires_at DATETIME NULL,
+			grace_started_at DATETIME NULL,
+			grace_ends_at DATETIME NULL,
+			cancel_requested_at DATETIME NULL,
+			cancel_reason TEXT NULL,
+			last_sync_at DATETIME NULL,
+			raw_response LONGTEXT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+			UNIQUE KEY email_unique (email),
+			KEY user_id_index (user_id),
+			KEY status_index (status),
+			KEY grace_ends_index (grace_ends_at)
+		) $charset_collate;";
+		dbDelta( $sql_access );
+
+		// 5. wp_elite_subscription_events
+		$table_events = $wpdb->prefix . 'elite_subscription_events';
+		$sql_events = "CREATE TABLE $table_events (
+			id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+			email VARCHAR(190) NOT NULL,
+			action VARCHAR(100) NOT NULL,
+			status_before VARCHAR(50) NULL,
+			status_after VARCHAR(50) NULL,
+			reason TEXT NULL,
+			request_payload LONGTEXT NULL,
+			response_payload LONGTEXT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			KEY email_index (email),
+			KEY action_index (action)
+		) $charset_collate;";
+		dbDelta( $sql_events );
+
+		// 6. Automatic Page Creation
 		self::create_static_pages();
 	}
 

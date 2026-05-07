@@ -875,4 +875,38 @@ class Expressive_Engine {
 		}
 	}
 
+	/**
+	 * Daily cleanup of expired grace periods.
+	 */
+	public function elite_daily_subscription_cleanup() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'elite_subscription_access';
+		
+		$expired = $wpdb->get_results( "SELECT * FROM $table WHERE status = 'grace_period' AND grace_ends_at < NOW()" );
+
+		foreach ( $expired as $row ) {
+			$wpdb->update( $table, 
+				array( 'status' => 'cancelled', 'last_sync_at' => current_time('mysql') ), 
+				array( 'id' => $row->id ) 
+			);
+			
+			Expressive_Logger::info( 'CLEANUP', "Grace Period encerrado automaticamente", array( 'email' => $row->email ) );
+			
+			Expressive_External_API::record_access_event( 
+				$row->email, 
+				'cleanup_expired_grace', 
+				'grace_period', 
+				'cancelled', 
+				'Grace Period expirado via rotina diária.', 
+				'SYSTEM_CRON', 
+				'SUCCESS' 
+			);
+
+			// Sync to user meta
+			if ( $row->user_id ) {
+				update_user_meta( $row->user_id, '_lms_elite_api_status', 'inactive' );
+			}
+		}
+	}
+
 }
