@@ -270,6 +270,15 @@ class Expressive_Core {
 	}
 
 	public function init() {
+		// Run update tasks if version changed
+		$db_version = get_option( 'expressive_core_db_version', '0.0.0' );
+		if ( version_compare( $db_version, EXPRESSIVE_CORE_VERSION, '<' ) ) {
+			require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-activator.php';
+			Expressive_Activator::activate();
+			update_option( 'expressive_core_db_version', EXPRESSIVE_CORE_VERSION );
+			flush_rewrite_rules();
+		}
+
 		// Flush rules once to fix broken links requested by user
 		if ( get_option( 'lms_needs_flush_v7' ) !== 'no' ) {
 			flush_rewrite_rules();
