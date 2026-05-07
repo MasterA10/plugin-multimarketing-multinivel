@@ -74,6 +74,8 @@ class Expressive_Core {
 
 		// Template Overrides
 		add_filter( 'template_include', array( $this, 'template_loader' ) );
+		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
+		add_action( 'init', array( $this, 'register_rewrite_routes' ), 5 );
 		add_action( 'template_redirect', array( $this, 'cancellation_page_override' ), 5 );
 		
 		// General Init
@@ -259,9 +261,9 @@ class Expressive_Core {
 
 	public function init() {
 		// Flush rules once to fix broken links requested by user
-		if ( get_option( 'lms_needs_flush_v6' ) !== 'no' ) {
+		if ( get_option( 'lms_needs_flush_v7' ) !== 'no' ) {
 			flush_rewrite_rules();
-			update_option( 'lms_needs_flush_v6', 'no' );
+			update_option( 'lms_needs_flush_v7', 'no' );
 		}
 
 		// --- WP CRON: Sincronização Periódica da API ---
@@ -454,12 +456,34 @@ class Expressive_Core {
 	 * Force load the cancellation page if URI matches
 	 */
 	public function cancellation_page_override() {
-		$request_uri = untrailingslashit( $_SERVER['REQUEST_URI'] );
-		if ( strpos( $request_uri, 'cancelar-assinatura' ) !== false ) {
-			Expressive_Logger::info( 'TEMPLATE', "Override de cancelamento detectado", array( 'uri' => $_SERVER['REQUEST_URI'] ) );
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? untrailingslashit( $_SERVER['REQUEST_URI'] ) : '';
+		if ( get_query_var( 'expressive_cancel_subscription' ) || strpos( $request_uri, 'cancelar-assinatura' ) !== false ) {
+			global $wp_query;
+
+			if ( $wp_query ) {
+				$wp_query->is_404 = false;
+			}
+
+			status_header( 200 );
+			Expressive_Logger::info( 'TEMPLATE', "Override de cancelamento detectado", array( 'uri' => $request_uri ) );
 			include EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
 			exit;
 		}
+	}
+
+	/**
+	 * Register public virtual pages handled by the plugin.
+	 */
+	public function register_rewrite_routes() {
+		add_rewrite_rule( '^cancelar-assinatura/?$', 'index.php?expressive_cancel_subscription=1', 'top' );
+	}
+
+	/**
+	 * Allow custom rewrite vars to reach template_redirect.
+	 */
+	public function register_query_vars( $vars ) {
+		$vars[] = 'expressive_cancel_subscription';
+		return $vars;
 	}
 
 }
