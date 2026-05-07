@@ -4,7 +4,7 @@ class Expressive_Access {
 
 	/**
 	 * Check if a user has an active subscription.
-	 * Hierarchy: Admin > Manual Override > API External > Local Status > WooCommerce
+	 * Hierarchy: Admin > Manual Override > Local/API Status > WooCommerce Subscriptions.
 	 */
 	public function has_active_subscription( $user_id = 0, $allow_api = true ) {
 		if ( ! $user_id && is_user_logged_in() ) {
@@ -13,109 +13,263 @@ class Expressive_Access {
 
 		if ( ! $user_id ) return false;
 
-		// --- 1. PASSE ADMINISTRATIVO VITALÍCIO ---
-		if ( user_can( $user_id, 'manage_options' ) ) return true;
-
-		// --- 2. SOBRESCRITA MANUAL (ADMIN OVERDRIVE) ---
-		$manual_status = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
-		if ( $manual_status === 'blocked' ) return false;
-		if ( $manual_status === 'unblocked' ) return true;
-
-		// --- 3. NOVA VERDADE: USER META SINCRONIZADO ---
-		// O Dashboard usa esses metas, então o motor de acesso deve ser soberano neles também.
-		$api_status = get_user_meta( $user_id, '_lms_elite_api_status', true );
-		$api_expiry = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
-
-		if ( $api_status === 'active' ) {
-			$fallback_days = get_option( 'lms_hard_fallback_days', 30 );
-			$expires = strtotime( $api_expiry . ' 23:59:59' );
-			$hard_limit = intval( $fallback_days ) * DAY_IN_SECONDS;
-			
-			if ( $expires && ( $expires + $hard_limit ) < time() ) {
-				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO (Meta): Status 'active' mas expiração (" . $api_expiry . ") excedeu limite hard.", array( 'user_id' => $user_id ) );
-			} else {
-				Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO (Meta): Status 'active'", array( 'user_id' => $user_id ) );
-				return true;
-			}
-		} elseif ( $api_status === 'grace_period' ) {
-			// Note: We don't have grace_ends_at in meta, so we'll check the table for more detail if needed.
-		} elseif ( !empty($api_status) && $api_status !== 'active' ) {
-			// Se o status for inativo/cancelado no meta, e a data de expiração passou, bloqueia.
-			if ( $api_expiry && strtotime($api_expiry . ' 23:59:59') < time() ) {
-				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO (Meta): Status '$api_status' e data expirada.", array( 'user_id' => $user_id ) );
-				return false;
-			}
+		if ( $allow_api ) {
+			self::maybe_refresh_access_from_api( $user_id );
 		}
 
-		// --- 4. TABELA LOCAL DE ACESSO (Fallback Detalhado) ---
-		global $wpdb;
-		$user = get_userdata( $user_id );
-		$table = $wpdb->prefix . 'elite_subscription_access';
-		$local = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", $user->user_email ) );
+		$snapshot = self::get_user_access_snapshot( $user_id );
+		return ! empty( $snapshot['has_access'] );
+	}
+
+	/**
+	 * Return a single access/payment state used by the engine, admin and dashboard.
+	 */
+	public static function get_user_access_snapshot( $user_id = 0 ) {
+		if ( ! $user_id && is_user_logged_in() ) {
+			$user_id = get_current_user_id();
+		}
+
+		$default = array(
+			'user_id'                  => $user_id,
+			'has_access'               => false,
+			'effective_status'         => 'inactive',
+			'status_label'             => 'Expirada / Inativa',
+			'source_label'             => 'Automático',
+			'plan_name'                => 'Plano Elite',
+			'payment_label'            => 'Gateway externo',
+			'access_expires_at'        => '',
+			'grace_ends_at'            => '',
+			'manual_status'            => 'none',
+			'api_status'               => '',
+			'local_status'             => '',
+			'is_lifetime'              => false,
+			'is_manually_blocked'      => false,
+			'is_active'                => false,
+			'is_grace'                 => false,
+			'is_cancelled_with_access' => false,
+			'is_expired'               => true,
+			'can_cancel'               => false,
+		);
+
+		$user = $user_id ? get_userdata( $user_id ) : null;
+		if ( ! $user ) {
+			return $default;
+		}
+
+		$manual_status = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
+		$api_status    = get_user_meta( $user_id, '_lms_elite_api_status', true );
+		$api_expiry    = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+		$api_plan      = get_user_meta( $user_id, '_lms_elite_api_plan', true );
+		$local         = self::get_local_access_record( $user_id );
+
+		$default['manual_status'] = $manual_status;
+		$default['api_status'] = $api_status;
+		$default['access_expires_at'] = $api_expiry;
+		$default['plan_name'] = $api_plan ?: $default['plan_name'];
 
 		if ( $local ) {
-			if ( $local->status === 'active' ) {
-				// --- TRAVA DE SEGURANÇA (FALLBACK CONFIGURÁVEL) ---
-				$fallback_days = get_option( 'lms_hard_fallback_days', 30 );
-				$expires = strtotime( $local->access_expires_at . ' 23:59:59' );
-				$hard_limit = intval( $fallback_days ) * DAY_IN_SECONDS;
-				
-				if ( $expires && ( $expires + $hard_limit ) < time() ) {
-					Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Status 'active' ignorado pois a expiração (" . $local->access_expires_at . ") excedeu o limite de segurança de $fallback_days dias.", array( 'user_id' => $user_id ) );
-					return false;
-				}
-
-				Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Status 'active' na tabela local", array( 'user_id' => $user_id ) );
-				return true;
-			}
-
-			if ( $local->status === 'grace_period' ) {
-				$grace_ends = strtotime( $local->grace_ends_at . ' 23:59:59' );
-				if ( $grace_ends && $grace_ends >= time() ) {
-					Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Grace Period ativo até " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
-					return true;
-				}
-				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Grace Period expirado em " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
-				return false;
-			}
-
-			// --- NOVO: RIGOR DE DATA DE EXPIRAÇÃO GERAL ---
-			// Se o status for qualquer outro (inactive, etc) e a data de expiração já passou, BLOQUEIA.
-			$expires_at = strtotime( $local->access_expires_at . ' 23:59:59' );
-			if ( $expires_at && $expires_at < time() ) {
-				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Data de expiração (" . $local->access_expires_at . ") vencida.", array( 'user_id' => $user_id ) );
-				return false;
-			}
-
-			// Se temos registro local e não é active/grace, bloqueia (a menos que permitamos re-checar na API)
-			if ( ! $allow_api ) {
-				return false;
-			}
+			$default['local_status'] = $local->status;
+			$default['access_expires_at'] = $local->access_expires_at ?: $default['access_expires_at'];
+			$default['grace_ends_at'] = $local->grace_ends_at ?: '';
+			$default['plan_name'] = $local->plan_name ?: $default['plan_name'];
 		}
 
-		// --- 4. API EXTERNA (Se não houver registro local ou se permitido re-checar) ---
-		$api_url = get_option( 'lms_external_api_url', '' );
-		if ( ! empty( $api_url ) && class_exists( 'Expressive_External_API' ) ) {
-			// Check if we should re-sync (cache TTL)
-			$last_check = $local ? strtotime($local->last_sync_at) : 0;
-			$cache_ttl  = HOUR_IN_SECONDS * 6; // 6h default cache
-
-			if ( (time() - $last_check) > $cache_ttl && $allow_api ) {
-				$api_status = Expressive_External_API::check_user_status( $user_id );
-				// check_user_status already calls update_local_access, so we re-read the state
-				if ( $api_status === 'active' ) return true;
-				
-				// Re-verify after sync
-				$local = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", $user->user_email ) );
-				if ( $local && $local->status === 'grace_period' && strtotime($local->grace_ends_at . ' 23:59:59') >= time() ) {
-					return true;
-				}
-			}
+		if ( user_can( $user_id, 'manage_options' ) ) {
+			return array_merge( $default, array(
+				'has_access'       => true,
+				'effective_status' => 'admin',
+				'status_label'     => 'Passe Administrativo',
+				'source_label'     => 'Administrador',
+				'plan_name'        => 'Acesso Administrativo',
+				'payment_label'    => 'Bypass administrativo',
+				'is_active'        => true,
+				'is_expired'       => false,
+			) );
 		}
 
-		// --- 5. FALLBACK PARA WOOCOMMERCE (Legado) ---
-		$wc_status = $this->has_active_woocommerce_subscription( $user_id );
-		return $wc_status;
+		if ( $manual_status === 'blocked' ) {
+			return array_merge( $default, array(
+				'has_access'          => false,
+				'effective_status'    => 'blocked',
+				'status_label'        => 'Bloqueado Manualmente',
+				'source_label'        => 'Bloqueio manual',
+				'plan_name'           => 'Acesso Suspenso',
+				'payment_label'       => 'Suspenso pelo administrador',
+				'is_manually_blocked' => true,
+				'is_expired'          => true,
+			) );
+		}
+
+		if ( $manual_status === 'unblocked' ) {
+			return array_merge( $default, array(
+				'has_access'       => true,
+				'effective_status' => 'lifetime',
+				'status_label'     => 'Passe Vitalício Concedido',
+				'source_label'     => 'Liberação manual',
+				'plan_name'        => 'Acesso Vitalício Elite',
+				'payment_label'    => 'Concedido manualmente',
+				'is_lifetime'      => true,
+				'is_active'        => true,
+				'is_expired'       => false,
+			) );
+		}
+
+		if ( $local ) {
+			return self::evaluate_subscription_state(
+				$default,
+				$local->status,
+				$local->access_expires_at,
+				$local->grace_ends_at,
+				'Gateway sincronizado'
+			);
+		}
+
+		if ( $api_status ) {
+			return self::evaluate_subscription_state(
+				$default,
+				$api_status,
+				$api_expiry,
+				'',
+				'Meta sincronizada'
+			);
+		}
+
+		$self = new self();
+		if ( $self->has_active_woocommerce_subscription( $user_id ) ) {
+			return array_merge( $default, array(
+				'has_access'       => true,
+				'effective_status' => 'active',
+				'status_label'     => 'Ativa / WooCommerce',
+				'source_label'     => 'WooCommerce Subscriptions',
+				'is_active'        => true,
+				'is_expired'       => false,
+				'can_cancel'       => false,
+			) );
+		}
+
+		return $default;
+	}
+
+	private static function evaluate_subscription_state( $base, $status, $access_expires_at = '', $grace_ends_at = '', $source_label = 'Automático' ) {
+		$status = $status ? sanitize_key( strtolower( $status ) ) : 'inactive';
+		$now = time();
+		$expiry_ts = self::parse_access_date_end( $access_expires_at );
+		$grace_ts = self::parse_access_date_end( $grace_ends_at );
+		$fallback_days = max( 0, intval( get_option( 'lms_hard_fallback_days', 30 ) ) );
+		$hard_limit = $fallback_days * DAY_IN_SECONDS;
+
+		$base['source_label'] = $source_label;
+		$base['access_expires_at'] = $access_expires_at ?: $base['access_expires_at'];
+		$base['grace_ends_at'] = $grace_ends_at ?: $base['grace_ends_at'];
+
+		if ( $status === 'active' ) {
+			if ( $expiry_ts && ( $expiry_ts + $hard_limit ) < $now ) {
+				return array_merge( $base, array(
+					'has_access'       => false,
+					'effective_status' => 'expired',
+					'status_label'     => 'Expirada / Limite de Segurança',
+					'is_expired'       => true,
+				) );
+			}
+
+			$is_tolerated = $expiry_ts && $expiry_ts < $now;
+			return array_merge( $base, array(
+				'has_access'       => true,
+				'effective_status' => $is_tolerated ? 'active_tolerance' : 'active',
+				'status_label'     => $is_tolerated ? 'Ativa / Regularização Pendente' : 'Ativa / Recorrência Ligada',
+				'is_active'        => true,
+				'is_expired'       => false,
+				'can_cancel'       => true,
+			) );
+		}
+
+		if ( $status === 'grace_period' ) {
+			$valid_until = $grace_ts ?: $expiry_ts;
+			if ( $valid_until && $valid_until >= $now ) {
+				return array_merge( $base, array(
+					'has_access'       => true,
+					'effective_status' => 'grace_period',
+					'status_label'     => 'Período de Carência',
+					'is_grace'         => true,
+					'is_expired'       => false,
+				) );
+			}
+
+			return array_merge( $base, array(
+				'has_access'       => false,
+				'effective_status' => 'expired',
+				'status_label'     => 'Carência Expirada',
+				'is_expired'       => true,
+			) );
+		}
+
+		if ( in_array( $status, array( 'cancelled', 'canceled', 'inactive', 'past_due', 'overdue' ), true ) ) {
+			if ( $expiry_ts && $expiry_ts >= $now ) {
+				return array_merge( $base, array(
+					'has_access'               => true,
+					'effective_status'         => 'cancelled_with_access',
+					'status_label'             => 'Cancelada / Acesso Vigente',
+					'payment_label'            => 'Recorrência cancelada',
+					'is_cancelled_with_access' => true,
+					'is_expired'               => false,
+				) );
+			}
+
+			return array_merge( $base, array(
+				'has_access'       => false,
+				'effective_status' => 'inactive',
+				'status_label'     => 'Expirada / Inativa',
+				'payment_label'    => 'Sem recorrência ativa',
+				'is_expired'       => true,
+			) );
+		}
+
+		return array_merge( $base, array(
+			'has_access'       => false,
+			'effective_status' => $status,
+			'status_label'     => strtoupper( str_replace( '_', ' ', $status ) ),
+			'is_expired'       => true,
+		) );
+	}
+
+	private static function maybe_refresh_access_from_api( $user_id ) {
+		$api_url = get_option( 'lms_external_api_url_status' ) ?: get_option( 'lms_external_api_url', '' );
+		if ( empty( $api_url ) || ! class_exists( 'Expressive_External_API' ) ) {
+			return;
+		}
+
+		$local = self::get_local_access_record( $user_id );
+		$last_check = $local && ! empty( $local->last_sync_at ) ? strtotime( $local->last_sync_at ) : intval( get_user_meta( $user_id, '_lms_elite_api_last_check', true ) );
+		$cache_ttl = HOUR_IN_SECONDS * 6;
+
+		if ( ! $last_check || ( time() - $last_check ) > $cache_ttl ) {
+			Expressive_External_API::check_user_status( $user_id );
+		}
+	}
+
+	private static function get_local_access_record( $user_id ) {
+		global $wpdb;
+
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return null;
+		}
+
+		$table = $wpdb->prefix . 'elite_subscription_access';
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", strtolower( trim( $user->user_email ) ) ) );
+	}
+
+	private static function parse_access_date_end( $date ) {
+		if ( empty( $date ) ) {
+			return false;
+		}
+
+		$date = trim( (string) $date );
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			$date .= ' 23:59:59';
+		}
+
+		return strtotime( $date );
 	}
 
 	/**
@@ -143,7 +297,7 @@ class Expressive_Access {
 
 		$post_type = get_post_type();
 		$post_id   = get_the_ID();
-		
+
 		// Administrators always pass
 		if ( current_user_can( 'manage_options' ) ) {
 			return;
@@ -177,13 +331,13 @@ class Expressive_Access {
 		$visibility = get_post_meta( $post_id, '_lms_visibility_role', true ) ?: 'all';
 		if ( $visibility !== 'all' ) {
 			$is_educator = Expressive_Referral::is_educator( get_current_user_id() );
-			
+
 			if ( $visibility === 'educadora' && ! $is_educator ) {
 				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO por RBAC: Conteúdo exclusivo para Educadoras", array( 'user_id' => get_current_user_id(), 'post_id' => $post_id, 'visibility' => $visibility ) );
 				wp_redirect( site_url( '/area-de-membros/?rbac_restricted=1' ) );
 				exit;
 			}
-			
+
 			if ( $visibility === 'autoridade' && $is_educator ) {
 				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO por RBAC: Conteúdo exclusivo para Autoridades", array( 'user_id' => get_current_user_id(), 'post_id' => $post_id, 'visibility' => $visibility ) );
 				wp_redirect( site_url( '/area-de-membros/?rbac_restricted=1' ) );
@@ -203,7 +357,7 @@ class Expressive_Access {
 			update_user_meta( $user_id, '_lms_elite_manual_status', 'blocked' );
 			Expressive_Logger::info( 'ACCESS', "Status de acesso ATUALIZADO para: SUSPENSO", array( 'target_user' => $user_id ) );
 		} elseif ( $status === 'none' ) {
-			// AUTOMATIC MODE: Secure by default. 
+			// AUTOMATIC MODE: Secure by default.
 			// We set local status to suspended so they ONLY enter if the API validates them as active.
 			update_user_meta( $user_id, '_lms_subscription_status', 'suspended' );
 			update_user_meta( $user_id, '_lms_elite_manual_status', 'none' );

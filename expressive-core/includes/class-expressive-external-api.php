@@ -83,7 +83,7 @@ class Expressive_External_API {
         $payload = array( 'action' => 'get_active_list' );
 
         $response = wp_remote_post( $api_url, array(
-            'headers' => array( 
+            'headers' => array(
                 'Authorization' => 'Bearer ' . $api_token,
                 'Content-Type'  => 'application/json',
                 'Accept'        => 'application/json',
@@ -116,7 +116,7 @@ class Expressive_External_API {
             return false;
         }
 
-        $active_users_data = array();
+        $users_data = array();
         $raw_data = null;
         if ( isset( $data['data'] ) && is_array( $data['data'] ) ) {
             $raw_data = $data['data'];
@@ -127,43 +127,32 @@ class Expressive_External_API {
         if ( is_array( $raw_data ) ) {
             foreach ( $raw_data as $item ) {
                 if ( is_array( $item ) && isset( $item['email'] ) ) {
-                    if ( !isset( $item['is_active'] ) || $item['is_active'] ) {
-                        $email = strtolower( trim( $item['email'] ) );
-                        $active_users_data[$email] = $item;
+                    $email = strtolower( trim( $item['email'] ) );
+                    if ( ! isset( $item['status'] ) ) {
+                        $item['status'] = ( isset( $item['is_active'] ) && ! $item['is_active'] ) ? 'inactive' : 'active';
                     }
+                    $users_data[$email] = $item;
                 } elseif ( is_string( $item ) ) {
                     $email = strtolower( trim( $item ) );
-                    $active_users_data[$email] = array();
+                    $users_data[$email] = array(
+                        'email'     => $email,
+                        'is_active' => true,
+                        'status'    => 'active',
+                    );
                 }
             }
 
             $users = get_users();
             foreach ( $users as $user ) {
                 $email = strtolower( trim( $user->user_email ) );
-                $is_active = isset( $active_users_data[$email] );
+                $u_data = isset( $users_data[$email] ) ? $users_data[$email] : array(
+                    'email'     => $email,
+                    'is_active' => false,
+                    'status'    => 'inactive',
+                );
 
-                update_user_meta( $user->ID, '_lms_elite_api_status', $is_active ? 'active' : 'inactive' );
-                update_user_meta( $user->ID, '_lms_elite_api_last_check', time() );
-
-                if ( $is_active ) {
-                    $u_data = $active_users_data[$email];
-                    if ( !empty( $u_data['expiry_date'] ) ) {
-                        update_user_meta( $user->ID, '_lms_elite_api_expiry', sanitize_text_field( $u_data['expiry_date'] ) );
-                    }
-                    if ( !empty( $u_data['plan_name'] ) ) {
-                        update_user_meta( $user->ID, '_lms_elite_api_plan', sanitize_text_field( $u_data['plan_name'] ) );
-                    }
-                    if ( !empty( $u_data['gateway_reference'] ) ) {
-                        update_user_meta( $user->ID, '_lms_elite_api_gateway_ref', sanitize_text_field( $u_data['gateway_reference'] ) );
-                    }
-
-                    // Se a API confirma que é ativo, remove bloqueio automático (mas preserva bloqueio manual do admin)
-                    $manual = get_user_meta( $user->ID, '_lms_elite_manual_status', true );
-                    if ( $manual !== 'blocked' ) {
-                        update_user_meta( $user->ID, '_lms_elite_manual_status', 'none' );
-                        update_user_meta( $user->ID, '_lms_subscription_status', 'active' );
-                    }
-                }
+                $u_data['email'] = $email;
+                self::update_local_access( $email, $u_data );
             }
             return true;
         }
@@ -225,13 +214,22 @@ class Expressive_External_API {
 
         if ( isset( $data['success'] ) && $data['success'] ) {
             Expressive_Logger::info( 'API', "Assinatura cancelada com sucesso via API", array( 'user_id' => $user_id ) );
-            
-            // Sync result to local access table
-            $api_data = $data['data'] ?? array();
+
+            // Sync result to local access table, preserving the paid-through date if the API omits it.
+            $api_data = isset( $data['data'] ) && is_array( $data['data'] ) ? $data['data'] : array();
+            if ( empty( $api_data['status'] ) ) {
+                $api_data['status'] = 'cancelled';
+            }
+            if ( empty( $api_data['access_expires_at'] ) && empty( $api_data['expiry_date'] ) ) {
+                $existing_expiry = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+                if ( $existing_expiry ) {
+                    $api_data['access_expires_at'] = $existing_expiry;
+                }
+            }
             $api_data['cancel_reason'] = $reason;
             self::update_local_access( $user->user_email, $api_data );
 
-            self::record_access_event( $user->user_email, 'cancel_subscription', 'active', $api_data['status'] ?? 'inactive', $reason, wp_json_encode($payload), $body );
+            self::record_access_event( $user->user_email, 'cancel_subscription', 'active', $api_data['status'] ?? 'cancelled', $reason, wp_json_encode($payload), $body );
 
             return true;
         }
@@ -253,28 +251,40 @@ class Expressive_External_API {
 
         $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE email = %s", $email ) );
 
-        $status = $data['status'] ?? ( (isset($data['is_active']) && $data['is_active']) ? 'active' : 'inactive' );
-        
+        $status = $data['status'] ?? ( ( isset( $data['is_active'] ) && $data['is_active'] ) ? 'active' : 'inactive' );
+        $status = sanitize_key( strtolower( $status ) );
+        $existing_value = function( $field, $default = null ) use ( $existing ) {
+            return ( $existing && isset( $existing->$field ) && $existing->$field !== '' ) ? $existing->$field : $default;
+        };
+        $access_expires_at = $data['access_expires_at'] ?? $data['expiry_date'] ?? $existing_value( 'access_expires_at' );
+        $grace_ends_at = $data['grace_ends_at'] ?? $existing_value( 'grace_ends_at' );
+
+        if ( $status === 'grace_period' && empty( $grace_ends_at ) && ! empty( $access_expires_at ) ) {
+            $grace_days = max( 0, intval( get_option( 'lms_grace_period_days', 7 ) ) );
+            $base_time = strtotime( $access_expires_at );
+            if ( $base_time ) {
+                $grace_ends_at = date( 'Y-m-d H:i:s', $base_time + ( $grace_days * DAY_IN_SECONDS ) );
+            }
+        }
+        if ( $status === 'active' ) {
+            $grace_ends_at = null;
+        }
+
         $fields = array(
             'user_id'               => $user_id,
             'email'                 => $email,
-            'asaas_customer_id'     => $data['customer_id'] ?? $data['gateway_customer_id'] ?? null,
-            'asaas_subscription_id' => $data['subscription_id'] ?? $data['gateway_reference'] ?? null,
+            'asaas_customer_id'     => $data['customer_id'] ?? $data['gateway_customer_id'] ?? $existing_value( 'asaas_customer_id' ),
+            'asaas_subscription_id' => $data['subscription_id'] ?? $data['gateway_reference'] ?? $existing_value( 'asaas_subscription_id' ),
             'status'                => $status,
-            'plan_name'             => $data['plan_name'] ?? null,
-            'gateway_status'        => $data['gateway_status'] ?? ( ($status === 'active') ? 'ACTIVE' : 'INACTIVE' ),
-            'access_expires_at'     => $data['access_expires_at'] ?? $data['expiry_date'] ?? null,
-            'grace_ends_at'         => $data['grace_ends_at'] ?? null,
-            'cancel_requested_at'   => ($status === 'grace_period' || $status === 'cancelled') ? current_time('mysql') : null,
-            'cancel_reason'         => $data['cancel_reason'] ?? null,
+            'plan_name'             => $data['plan_name'] ?? $existing_value( 'plan_name' ),
+            'gateway_status'        => $data['gateway_status'] ?? $existing_value( 'gateway_status', ( $status === 'active' ) ? 'ACTIVE' : 'INACTIVE' ),
+            'access_expires_at'     => $access_expires_at,
+            'grace_ends_at'         => $grace_ends_at,
+            'cancel_requested_at'   => in_array( $status, array( 'grace_period', 'cancelled', 'canceled' ), true ) ? $existing_value( 'cancel_requested_at', current_time('mysql') ) : null,
+            'cancel_reason'         => $data['cancel_reason'] ?? $existing_value( 'cancel_reason' ),
             'last_sync_at'          => current_time('mysql'),
             'raw_response'          => wp_json_encode($data)
         );
-
-        // Map legacy/simple API fields if missing
-        if ( empty($fields['access_expires_at']) && !empty($data['expiry_date']) ) {
-            $fields['access_expires_at'] = $data['expiry_date'];
-        }
 
         if ( $existing ) {
             $wpdb->update( $table, $fields, array( 'email' => $email ) );
@@ -285,10 +295,22 @@ class Expressive_External_API {
 
         // Sync to legacy user meta for compatibility
         if ( $user_id ) {
-            update_user_meta( $user_id, '_lms_elite_api_status', ($status === 'active' || $status === 'grace_period') ? 'active' : 'inactive' );
+            update_user_meta( $user_id, '_lms_elite_api_status', $status );
             update_user_meta( $user_id, '_lms_elite_api_last_check', time() );
             if ( !empty($fields['access_expires_at']) ) {
                 update_user_meta( $user_id, '_lms_elite_api_expiry', $fields['access_expires_at'] );
+            }
+            if ( ! empty( $fields['plan_name'] ) ) {
+                update_user_meta( $user_id, '_lms_elite_api_plan', $fields['plan_name'] );
+            }
+            if ( ! empty( $fields['asaas_subscription_id'] ) ) {
+                update_user_meta( $user_id, '_lms_elite_api_gateway_ref', $fields['asaas_subscription_id'] );
+            }
+
+            $manual = get_user_meta( $user_id, '_lms_elite_manual_status', true ) ?: 'none';
+            if ( $manual === 'none' && class_exists( 'Expressive_Access' ) ) {
+                $snapshot = Expressive_Access::get_user_access_snapshot( $user_id );
+                update_user_meta( $user_id, '_lms_subscription_status', ! empty( $snapshot['has_access'] ) ? 'active' : 'suspended' );
             }
         }
     }
@@ -299,7 +321,7 @@ class Expressive_External_API {
     public static function record_access_event( $email, $action, $before, $after, $reason, $request, $response ) {
         global $wpdb;
         $table = $wpdb->prefix . 'elite_subscription_events';
-        
+
         $wpdb->insert( $table, array(
             'email'            => $email,
             'action'           => $action,

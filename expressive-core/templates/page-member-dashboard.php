@@ -1,7 +1,7 @@
 <?php
 /**
  * Template Name: Member Area Dashboard
- * 
+ *
  * Standalone template for a luxury student dashboard.
  */
 if ( ! is_user_logged_in() ) {
@@ -32,44 +32,44 @@ if ($is_admin) {
 // Rank Progress Math (Regra dos 10)
 $ranks = array(
     1 => array(
-        'name'  => 'Bronze',   
-        'min'   => 0,   
-        'max'   => 10, 
+        'name'  => 'Bronze',
+        'min'   => 0,
+        'max'   => 10,
         'color' => '#CD7F32',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15l-2 5l2 2l2-2l-2-5zM12 15l2 5l-2 2l-2-2l2-5zM12 3a6 6 0 1 0 0 12a6 6 0 1 0 0 -12z"></path></svg>'
     ),
     2 => array(
-        'name'  => 'Prata',    
-        'min'   => 10,  
-        'max'   => 20, 
+        'name'  => 'Prata',
+        'min'   => 10,
+        'max'   => 20,
         'color' => '#C0C0C0',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8l-2 4h4l-2 -4zM8 21l4-9l4 9zM4 14h16"></path></svg>'
     ),
     3 => array(
-        'name'  => 'Ouro',     
-        'min'   => 20,  
-        'max'   => 30, 
+        'name'  => 'Ouro',
+        'min'   => 20,
+        'max'   => 30,
         'color' => '#D4AF37',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.54 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.196-1.539-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>'
     ),
     4 => array(
-        'name'  => 'Platina',  
-        'min'   => 30,  
-        'max'   => 40, 
+        'name'  => 'Platina',
+        'min'   => 30,
+        'max'   => 40,
         'color' => '#E5E4E2',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>'
     ),
     5 => array(
-        'name'  => 'Diamante', 
-        'min'   => 40,  
-        'max'   => 50, 
+        'name'  => 'Diamante',
+        'min'   => 40,
+        'max'   => 50,
         'color' => '#B9F2FF',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 5L3 9l9 10L21 9l-3-4H6zM3 9h18M9 5l3 4l3-4"></path></svg>'
     ),
     6 => array(
-        'name'  => 'Elite',    
-        'min'   => 50,  
-        'max'   => 1000, 
+        'name'  => 'Elite',
+        'min'   => 50,
+        'max'   => 1000,
         'color' => '#A855F7',
         'icon'  => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>'
     )
@@ -106,8 +106,8 @@ $my_referrer = $my_referrer_id ? get_userdata($my_referrer_id) : null;
 $completed_lesson_ids = get_user_meta( $user_id, '_lms_completed_lessons', true ) ?: [];
 $total_lessons_watched = count($completed_lesson_ids);
 
-$all_lessons_query = get_posts( array( 
-    'post_type' => 'lms_lesson', 
+$all_lessons_query = get_posts( array(
+    'post_type' => 'lms_lesson',
     'posts_per_page' => -1,
     'post_status' => 'publish'
 ) );
@@ -167,10 +167,11 @@ $show_commissions = get_option('lms_show_commissions', 'yes');
         .aspect-4-5 { aspect-ratio: 4/5; }
     </style>
 </head>
-<?php 
+<?php
 $is_educator = $user_id ? Expressive_Referral::is_educator( $user_id ) : false;
 $access_checker = new Expressive_Access();
 $has_access = $user_id ? $access_checker->has_active_subscription( $user_id ) : false;
+$access_snapshot = $user_id ? Expressive_Access::get_user_access_snapshot( $user_id ) : array();
 
 // RBAC Visibility Logic
 $visibility_meta_query = array(
@@ -193,7 +194,7 @@ $visibility_meta_query = array(
 ?>
 <body class="bg-black text-white font-sans min-h-screen flex">
 
-    <!-- ELITE CURIOSITY ACCESS: No hard block for logged-in inactive users. 
+    <!-- ELITE CURIOSITY ACCESS: No hard block for logged-in inactive users.
          They browse in 'Visitor Mode' like guests. -->
 
     <!-- Sidebar shadow for mobile -->
@@ -237,12 +238,12 @@ $visibility_meta_query = array(
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 <span class="text-sm font-medium">Calendário de Lives</span>
             </a>
-            
+
             <a href="javascript:void(0)" onclick="switchTab('subscription', this)" class="tab-link flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-white transition-all group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                 <span class="text-sm font-medium">Minha Assinatura</span>
             </a>
-            
+
             <a href="<?php echo home_url('/equipe-academia'); ?>" target="_blank" class="flex items-center gap-3 px-6 py-4 text-gray-400 hover:text-gold-500 transition-all group">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 <span class="text-sm font-medium">Equipe Academia</span>
@@ -258,7 +259,7 @@ $visibility_meta_query = array(
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="text-sm font-medium">Ranking Anual</span>
             </a>
-            
+
             <!-- Contextual Login/Logout -->
             <?php if ( $is_guest ) : ?>
                 <a href="<?php echo site_url( '/login/' ); ?>" class="flex items-center gap-3 px-6 py-4 text-gold-500 hover:text-gold-400 transition-all group border-t border-white/5 mt-2">
@@ -310,20 +311,29 @@ $visibility_meta_query = array(
                 </div>
                 <!-- Benefit & Subscription Notification -->
                 <div class="flex flex-col gap-1 mt-2">
-                    <?php if ( ! $is_guest ) : ?>
-                        <div class="flex items-center gap-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></div>
-                            <span class="text-[9px] text-zinc-500 uppercase tracking-widest">Benefício Elite Ativo: <span class="text-gold-500 font-bold"><?php echo Expressive_Referral::is_educator($user_id) ? '40%' : '30%'; ?> DESCONTO</span></span>
-                        </div>
-                        <?php 
-                            $expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
-                            if ( $expiry_date ) :
-                                $expiry_formatted = date_i18n( 'd/m/Y', strtotime( $expiry_date ) );
-                        ?>
-                        <div class="flex items-center gap-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                            <span class="text-[9px] text-zinc-500 uppercase tracking-widest">Próxima Renovação: <span class="text-blue-400 font-bold"><?php echo $expiry_formatted; ?></span></span>
-                        </div>
+	                    <?php if ( ! $is_guest ) : ?>
+	                        <?php $discount_eligible = get_user_meta( $user_id, '_lms_discount_eligible', true ) === 'yes'; ?>
+	                        <div class="flex items-center gap-2">
+	                            <div class="w-1.5 h-1.5 rounded-full <?php echo $has_access ? 'bg-gold-500 animate-pulse' : 'bg-red-500'; ?>"></div>
+	                            <span class="text-[9px] text-zinc-500 uppercase tracking-widest">
+	                                <?php if ( $has_access && $discount_eligible ) : ?>
+	                                    Benefício Elite Ativo: <span class="text-gold-500 font-bold"><?php echo Expressive_Referral::is_educator($user_id) ? '40%' : '30%'; ?> DESCONTO</span>
+	                                <?php elseif ( $has_access ) : ?>
+	                                    Acesso Elite Ativo: <span class="text-gold-500 font-bold"><?php echo esc_html( $access_snapshot['status_label'] ?? 'Ativo' ); ?></span>
+	                                <?php else : ?>
+	                                    Acesso Elite Inativo: <span class="text-red-500 font-bold"><?php echo esc_html( $access_snapshot['status_label'] ?? 'Sem acesso' ); ?></span>
+	                                <?php endif; ?>
+	                            </span>
+	                        </div>
+	                        <?php
+	                            $expiry_date = $access_snapshot['access_expires_at'] ?? get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+	                            if ( $expiry_date ) :
+	                                $expiry_formatted = date_i18n( 'd/m/Y', strtotime( $expiry_date ) );
+	                        ?>
+	                        <div class="flex items-center gap-2">
+	                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+	                            <span class="text-[9px] text-zinc-500 uppercase tracking-widest"><?php echo ! empty( $access_snapshot['is_cancelled_with_access'] ) ? 'Acesso até' : 'Próxima Renovação'; ?>: <span class="text-blue-400 font-bold"><?php echo $expiry_formatted; ?></span></span>
+	                        </div>
                         <?php endif; ?>
                     <?php else : ?>
                         <div class="flex items-center gap-2">
@@ -354,7 +364,7 @@ $visibility_meta_query = array(
         </header>
 
         <div class="p-4 md:p-10 max-w-7xl mx-auto w-full">
-            
+
             <!-- TAB: HOME -->
             <div id="tab-home" class="tab-content space-y-12">
                 <!-- Hero Stats -->
@@ -404,23 +414,23 @@ $visibility_meta_query = array(
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <?php $courses = get_posts(array(
-                                'post_type' => 'lms_course', 
+                                'post_type' => 'lms_course',
                                 'posts_per_page' => 3,
                                 'meta_query' => $visibility_meta_query
-                            )); 
+                            ));
                             foreach ($courses as $c): $thumb = get_the_post_thumbnail_url($c->ID, 'large'); ?>
                                 <div onclick="switchTab('courses')" class="glass p-4 rounded-3xl border border-white/5 course-card transition-all cursor-pointer group">
                                     <div class="w-full aspect-4-5 bg-onyx rounded-2xl mb-5 overflow-hidden relative">
                                         <?php if ($thumb): ?><img src="<?php echo $thumb; ?>" class="w-full h-full object-cover"><?php endif; ?>
                                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                                     </div>
-                                    <h4 class="font-semibold"><?php echo esc_html($c->post_title); ?></h4>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
+	                                    <h4 class="font-semibold"><?php echo esc_html($c->post_title); ?></h4>
+	                                </div>
+	                            <?php endforeach; ?>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
 
             <!-- TAB: TREINAMENTOS -->
             <div id="tab-courses" class="tab-content hidden space-y-8 animate-fade-in">
@@ -431,16 +441,16 @@ $visibility_meta_query = array(
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <?php 
+                    <?php
                     $all_courses = get_posts(array(
-                        'post_type' => 'lms_course', 
+                        'post_type' => 'lms_course',
                         'posts_per_page' => -1,
                         'meta_query' => $visibility_meta_query
                     ));
                     $cert_engine = new Expressive_Certificate();
-                    foreach ($all_courses as $course): 
+                    foreach ($all_courses as $course):
                         $thumb = get_the_post_thumbnail_url($course->ID, 'large');
-                        
+
                         // Calculate specific course progress
                         $course_lessons = get_posts(array(
                             'post_type' => 'lms_lesson',
@@ -462,7 +472,7 @@ $visibility_meta_query = array(
                                         <img src="<?php echo esc_url($thumb); ?>" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-700">
                                     <?php endif; ?>
                                     <div class="absolute top-4 right-4 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-widest text-gold-400 border border-white/10">Premium</div>
-                                    
+
                                     <!-- Progress Overlay -->
                                     <div class="absolute bottom-4 left-4 right-4 h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
                                         <div class="h-full bg-gold-500" style="width: <?php echo $c_pct; ?>%"></div>
@@ -492,13 +502,13 @@ $visibility_meta_query = array(
                     <p class="text-xs text-gray-500 mt-1">Mentorias e encontros ao vivo com foco em crescimento.</p>
                 </div>
                 <div class="grid grid-cols-1 gap-6 max-w-4xl">
-                    <?php 
+                    <?php
                     $lives = get_posts(array(
-                        'post_type' => 'lms_live', 
+                        'post_type' => 'lms_live',
                         'posts_per_page' => -1,
                         'meta_query' => $visibility_meta_query
                     ));
-                    foreach ($lives as $live): 
+                    foreach ($lives as $live):
                     ?>
                         <div class="glass p-8 rounded-3xl border border-white/5 flex flex-col md:flex-row items-center gap-8 group hover:border-gold-500/30 transition-all">
                             <div class="w-20 h-20 bg-onyx rounded-2xl flex flex-col items-center justify-center text-gold-400 border border-gold-500/20 group-hover:bg-gold-500 group-hover:text-black transition-all">
@@ -536,7 +546,7 @@ $visibility_meta_query = array(
                 <!-- Ranking Evolution Card -->
                 <div class="glass p-10 rounded-[40px] border border-white/5 gold-glow overflow-hidden relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-gold-500/5 to-transparent pointer-events-none"></div>
-                    
+
                     <div class="relative z-10">
                         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-12 gap-6">
                             <div>
@@ -563,7 +573,7 @@ $visibility_meta_query = array(
 
                             <!-- Nodes -->
                             <div class="relative grid grid-cols-3 place-items-center lg:flex lg:justify-between w-full gap-x-2 gap-y-12 px-2">
-                                <?php foreach($ranks as $lv => $r): 
+                                <?php foreach($ranks as $lv => $r):
                                     $is_past = $lv < $current_level;
                                     $is_current = $lv == $current_level;
                                 ?>
@@ -661,7 +671,7 @@ $visibility_meta_query = array(
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/5">
-                                <?php if($authorities_data): foreach($authorities_data as $ref): 
+                                <?php if($authorities_data): foreach($authorities_data as $ref):
                                     $auth_user = get_userdata($ref->authority_id);
                                     if(!$auth_user) continue;
                                     $completed_auth = get_user_meta($ref->authority_id, '_lms_completed_lessons', true) ?: [];
@@ -678,8 +688,8 @@ $visibility_meta_query = array(
                                         </div>
                                     </td>
                                     <td class="py-5 px-2 text-center">
-                                        <?php 
-                                        $role = $ref->referred_role ?: 'autoridade'; 
+                                        <?php
+                                        $role = $ref->referred_role ?: 'autoridade';
                                         $role_color = ($role === 'educadora') ? 'bg-gold-500/10 text-gold-500 border-gold-500/20' : 'bg-purple-500/10 text-purple-500 border-purple-500/20';
                                         ?>
                                         <span class="px-2 py-0.5 border <?php echo $role_color; ?> text-[7px] font-bold uppercase rounded-full tracking-widest"><?php echo $role; ?></span>
@@ -733,30 +743,21 @@ $visibility_meta_query = array(
                     <!-- Status Card -->
                     <div class="glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden group">
                         <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/5 rounded-full blur-3xl"></div>
-                        
+
                         <div class="relative z-10">
                             <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Status do Plano</span>
-                            
-                            <?php 
-                            $manual_status = get_user_meta($user_id, '_lms_elite_manual_status', true) ?: 'none';
-                            $api_status = get_user_meta($user_id, '_lms_elite_api_status', true);
-                            $plan_name = get_user_meta($user_id, '_lms_elite_api_plan', true) ?: 'Plano Elite';
-                            $expiry_date = get_user_meta($user_id, '_lms_elite_api_expiry', true);
-                            
-                            $is_lifetime = ($manual_status === 'unblocked');
-                            $is_manually_blocked = ($manual_status === 'blocked');
-                            
-                            // Adjust labels based on manual status
-                            if ($is_lifetime) {
-                                $plan_name = 'Acesso Vitalício Elite';
-                                $api_status = 'active';
-                            } elseif ($is_manually_blocked) {
-                                $api_status = 'inactive';
-                            }
 
-                            $is_cancelled = ($api_status === 'inactive' && $expiry_date && strtotime($expiry_date) >= time() && !$is_manually_blocked);
-                            $is_active_real = ($api_status === 'active');
-                            ?>
+	                            <?php
+	                            $subscription_state = ! empty( $access_snapshot ) ? $access_snapshot : Expressive_Access::get_user_access_snapshot( $user_id );
+	                            $plan_name = $subscription_state['plan_name'] ?? 'Plano Elite';
+	                            $expiry_date = $subscription_state['access_expires_at'] ?? '';
+	                            $grace_ends_at = $subscription_state['grace_ends_at'] ?? '';
+	                            $is_lifetime = ! empty( $subscription_state['is_lifetime'] );
+	                            $is_manually_blocked = ! empty( $subscription_state['is_manually_blocked'] );
+	                            $is_cancelled = ! empty( $subscription_state['is_cancelled_with_access'] );
+	                            $is_grace = ! empty( $subscription_state['is_grace'] );
+	                            $is_active_real = ! empty( $subscription_state['is_active'] ) && ! $is_lifetime && ! $is_manually_blocked;
+	                            ?>
 
                             <div class="flex items-center gap-6 mb-8">
                                 <div class="w-16 h-16 rounded-3xl bg-black/40 border border-white/10 flex items-center justify-center text-gold-500">
@@ -771,12 +772,15 @@ $visibility_meta_query = array(
                                         <?php elseif ($is_manually_blocked): ?>
                                             <span class="w-2 h-2 rounded-full bg-red-600"></span>
                                             <span class="text-[10px] text-red-600 font-bold uppercase tracking-widest">Acesso Suspenso pelo Administrador</span>
-                                        <?php elseif ($is_active_real): ?>
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Ativa / Recorrência Ligada</span>
-                                        <?php elseif ($is_cancelled): ?>
-                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Cancelada / Acesso até <?php echo date('d/m/Y', strtotime($expiry_date)); ?></span>
+	                                        <?php elseif ($is_active_real): ?>
+	                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+	                                            <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest"><?php echo esc_html( $subscription_state['status_label'] ); ?></span>
+	                                        <?php elseif ($is_grace): ?>
+	                                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+	                                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Período de carência até <?php echo $grace_ends_at ? date('d/m/Y', strtotime($grace_ends_at)) : 'o fim da vigência'; ?></span>
+	                                        <?php elseif ($is_cancelled): ?>
+	                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+	                                            <span class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Cancelada / Acesso até <?php echo date('d/m/Y', strtotime($expiry_date)); ?></span>
                                         <?php else: ?>
                                             <span class="w-2 h-2 rounded-full bg-red-500"></span>
                                             <span class="text-[10px] text-red-500 font-bold uppercase tracking-widest">Expirada / Inativa</span>
@@ -787,17 +791,19 @@ $visibility_meta_query = array(
 
                             <div class="space-y-4 pt-6 border-t border-white/5">
                                 <div class="flex justify-between items-center text-sm">
-                                    <span class="text-zinc-500">Próxima Renovação</span>
-                                    <span class="text-white font-medium"><?php 
-                                        if ($is_lifetime) echo 'Nunca / Vitalício';
-                                        elseif ($is_manually_blocked) echo 'Acesso Suspenso';
-                                        else echo ($expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---'); 
-                                    ?></span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <span class="text-zinc-500">Método de Pagamento</span>
-                                    <span class="text-white font-medium italic">Cartão de Crédito / PIX</span>
-                                </div>
+	                                    <span class="text-zinc-500"><?php echo ( $is_cancelled || $is_grace ) ? 'Vigência do Acesso' : 'Próxima Renovação'; ?></span>
+	                                    <span class="text-white font-medium"><?php
+	                                        if ($is_lifetime) echo 'Nunca / Vitalício';
+	                                        elseif ($is_manually_blocked) echo 'Acesso Suspenso';
+	                                        elseif ($is_grace && $grace_ends_at) echo 'Carência até ' . date('d/m/Y', strtotime($grace_ends_at));
+	                                        elseif ($is_cancelled) echo 'Acesso até ' . date('d/m/Y', strtotime($expiry_date));
+	                                        else echo ($expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---');
+	                                    ?></span>
+	                                </div>
+	                                <div class="flex justify-between items-center text-sm">
+	                                    <span class="text-zinc-500">Método de Pagamento</span>
+	                                    <span class="text-white font-medium italic"><?php echo esc_html( $subscription_state['payment_label'] ?? 'Gateway externo' ); ?></span>
+	                                </div>
                             </div>
                         </div>
                     </div>
@@ -812,8 +818,8 @@ $visibility_meta_query = array(
 
                         <div class="flex flex-col gap-3">
                             <a href="https://wa.me/seunumerowhatsapp" target="_blank" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-center transition-all">Falar com Suporte</a>
-                            
-                            <?php if ($is_active_real && !$is_lifetime && !$is_manually_blocked): ?>
+
+	                            <?php if (! empty( $subscription_state['can_cancel'] ) && !$is_lifetime && !$is_manually_blocked): ?>
                                 <div id="sub-actions-default">
                                     <button onclick="toggleCancellationForm(true)" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all cursor-pointer bg-transparent border-none">Desejo Cancelar minha Assinatura</button>
                                 </div>
@@ -828,16 +834,14 @@ $visibility_meta_query = array(
                                     </div>
                                 </div>
                             <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-                    </div>
-                </div>
-            </div>
+	                        </div>
+	                    </div>
+	                </div>
+	            </div>
 
-            <!-- TAB: RANKING GLOBAL -->
+	            <!-- TAB: RANKING GLOBAL -->
             <div id="tab-global-ranking" class="tab-content hidden space-y-10 animate-fade-in pb-20">
-                <?php if ( ! $is_educator ) : 
+                <?php if ( ! $is_educator ) :
                     $educator_upgrade_url = get_option( 'lms_educator_upgrade_link', '#' );
                 ?>
                 <div class="bg-gold-500/5 hover:bg-gold-500/10 border border-gold-500/20 p-8 rounded-[40px] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden transition-all shadow-2xl">
@@ -858,14 +862,14 @@ $visibility_meta_query = array(
 
                 <!-- Podium (Top 3) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto py-10">
-                    <?php 
+                    <?php
                     $podium_count = 0;
-                    foreach(array_slice($ranking_data, 0, 3) as $index => $row): 
+                    foreach(array_slice($ranking_data, 0, 3) as $index => $row):
                         $podium_count++;
                         $user_info = get_userdata($row->educator_id);
                         if(!$user_info) continue;
                         $rank_level = get_user_meta($row->educator_id, '_lms_rank_level', true) ?: 1;
-                        
+
                         // Podium UI variations
                         $order_class = ($index == 0) ? 'order-2 scale-110 z-10' : (($index == 1) ? 'order-1' : 'order-3');
                         $medal_color = ($index == 0) ? 'text-gold-500' : (($index == 1) ? 'text-zinc-400' : 'text-orange-600');
@@ -884,7 +888,7 @@ $visibility_meta_query = array(
                         </div>
                         <h4 class="text-lg font-serif italic font-bold text-white line-clamp-1"><?php echo esc_html($user_info->display_name); ?></h4>
                         <div class="text-[9px] text-zinc-500 uppercase tracking-[0.2em] mb-4">Nível <?php echo $rank_level; ?></div>
-                        
+
                         <div class="bg-white/5 px-6 py-2 rounded-full border border-white/5">
                             <span class="text-2xl font-black text-gold-500"><?php echo $row->ref_count; ?></span>
                             <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Indicações</span>
@@ -906,8 +910,8 @@ $visibility_meta_query = array(
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php 
-                                foreach(array_slice($ranking_data, 0, 5) as $index => $row): 
+                                <?php
+                                foreach(array_slice($ranking_data, 0, 5) as $index => $row):
                                     $position = $index + 1;
                                     $user_info = get_userdata($row->educator_id);
                                     if(!$user_info) continue;
@@ -973,13 +977,13 @@ $visibility_meta_query = array(
                 <button onclick="toggleRankingModal()" class="absolute top-8 right-8 w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all z-30">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                
+
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10">
                     <div>
                         <h3 class="text-3xl md:text-4xl font-serif italic text-gold-500 mb-2">Elite Global Leaderboard</h3>
                         <p class="text-xs text-gray-400 uppercase tracking-[0.3em]">Temporada <?php echo date('Y'); ?></p>
                     </div>
-                    
+
                     <div class="flex gap-4 w-full md:w-auto">
                         <div class="flex-1 md:flex-none px-6 py-4 bg-black/40 rounded-2xl border border-white/5 flex flex-col items-center">
                             <span class="text-[8px] text-zinc-500 uppercase tracking-widest mb-1">Membros Ativos</span>
@@ -1005,8 +1009,8 @@ $visibility_meta_query = array(
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
-                        foreach($ranking_data as $index => $row): 
+                        <?php
+                        foreach($ranking_data as $index => $row):
                             $position = $index + 1;
                             $user_info = get_userdata($row->educator_id);
                             if(!$user_info) continue;
@@ -1054,7 +1058,7 @@ $visibility_meta_query = array(
                     <svg class="w-6 h-6 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                  </button>
             </div>
-            
+
             <div class="px-10 pb-12 text-center -mt-16 relative z-20">
                 <!-- Avatar Large with Upload Overlay -->
                 <div class="relative w-32 h-32 mx-auto mb-2 group cursor-pointer" onclick="document.getElementById('elite-avatar-input').click()">
@@ -1071,10 +1075,10 @@ $visibility_meta_query = array(
 
                 <!-- Remove Avatar Button -->
                 <button onclick="handleRemoveAvatar()" class="mb-6 text-[10px] text-gray-500 hover:text-red-400 uppercase tracking-widest transition-colors">Remover Foto</button>
-                
+
                 <h3 class="text-2xl font-serif italic text-gold-500 font-bold mb-1"><?php echo esc_html($user_data->display_name); ?></h3>
                 <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-6"><?php echo esc_html($user_data->user_email); ?></p>
-                
+
                 <div class="mb-12">
                     <span class="inline-block px-10 py-4 bg-gold-400/10 border border-gold-500/40 rounded-3xl text-sm font-black uppercase tracking-[0.2em] text-gold-500 shadow-xl shadow-gold-500/10 scale-110">
                         <?php echo esc_html(get_user_meta($user_id, '_lms_rank_name', true) ?: 'Elite Bronze'); ?>
@@ -1169,7 +1173,7 @@ $visibility_meta_query = array(
                 target.offsetHeight; // trigger reflow
                 target.style.animation = null;
             }
-            
+
             // Update sidebar links
             document.querySelectorAll('.tab-link').forEach(link => {
                 link.classList.remove('sidebar-active', 'text-gold-400');
@@ -1201,7 +1205,7 @@ $visibility_meta_query = array(
         function copyReferralLink(btn) {
             const link = "<?php echo site_url('/?ref=' . $user_data->user_login); ?>";
             const originalText = btn.innerText;
-            
+
             const handleSuccess = () => {
                 btn.innerText = "Copiado!";
                 btn.classList.add('bg-gold-500', 'text-black');
@@ -1235,7 +1239,7 @@ $visibility_meta_query = array(
             if (!input.files || !input.files[0]) return;
 
             const file = input.files[0];
-            
+
             // Safety check for lms_vars (WP Script Localization)
             if (typeof lms_vars === 'undefined') {
                 console.error('LMS Error: lms_vars is not defined. Ensure wp_head/wp_footer are loading.');
@@ -1270,7 +1274,7 @@ $visibility_meta_query = array(
 
                 canvas.width = outSize;
                 canvas.height = outSize;
-                
+
                 // Draw square crop
                 ctx.drawImage(img, sourceX, sourceY, size, size, 0, 0, outSize, outSize);
 
@@ -1285,7 +1289,7 @@ $visibility_meta_query = array(
                         body: formData
                     })
                     .then(res => res.text().then(text => { // Catch plaintext errors like -1
-                        try { return JSON.parse(text); } 
+                        try { return JSON.parse(text); }
                         catch(e) { return { success: false, data: "Erro de servidor (Autenticação falhou)." }; }
                     }))
                     .then(data => {
@@ -1390,7 +1394,7 @@ $visibility_meta_query = array(
         function toggleCancellationForm(show) {
             const defaultActions = document.getElementById('sub-actions-default');
             const cancelActions = document.getElementById('sub-actions-cancel');
-            
+
             if (show) {
                 defaultActions.classList.add('hidden');
                 cancelActions.classList.remove('hidden');
@@ -1403,9 +1407,9 @@ $visibility_meta_query = array(
         function executeInternalCancellation() {
             const btn = document.getElementById('internal-confirm-cancel-btn');
             const reason = document.getElementById('internal-cancel-reason').value;
-            
+
             if (btn.disabled) return;
-            
+
             btn.innerHTML = 'Processando...';
             btn.disabled = true;
 
@@ -1448,14 +1452,14 @@ $visibility_meta_query = array(
     <style>
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
+
         .animate-modal-in { animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
         /* Global scrollbar removal for dashboard content */
         * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
         *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
-        
+
         .custom-scrollbar::-webkit-scrollbar { display: none !important; }
     </style>
     <?php wp_footer(); ?>

@@ -1,7 +1,7 @@
 <?php
 /**
  * Template Name: Admin Settings Manager
- * 
+ *
  * Custom management interface for Gamification and System Settings.
  */
 if ( ! current_user_can( 'manage_options' ) ) {
@@ -14,7 +14,7 @@ if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycl
     if ( isset( $_POST['educator_upgrade_link'] ) ) {
         update_option( 'lms_educator_upgrade_link', esc_url_raw( $_POST['educator_upgrade_link'] ) );
     }
-    
+
     // Referral Product Restrictions
     if ( isset( $_POST['eligible_products'] ) ) {
         update_option( 'lms_eligible_products', sanitize_text_field( $_POST['eligible_products'] ) );
@@ -68,7 +68,7 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
 ?>
 
 <div class="elite-admin-wrap bg-[#111] text-white min-h-screen p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans max-w-4xl">
-    
+
     <!-- Header -->
     <header class="flex justify-between items-center mb-10 border-b border-white/5 pb-8">
         <div class="flex items-center gap-4">
@@ -86,15 +86,15 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
         <!-- Cycle & Referral Management Card -->
         <div class="glass p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-gold-500/5 rounded-full blur-3xl group-hover:bg-gold-500/10 transition-all"></div>
-            
+
             <h3 class="text-xl font-bold font-serif italic mb-6 flex items-center gap-3" style="color: #D4AF37 !important;">
                 <span class="w-2 h-6 bg-gold-500 rounded-full"></span>
                 Regras de Negócio e Ciclo
             </h3>
-            
+
             <form method="post" action="" class="space-y-6">
                 <?php wp_nonce_field( 'lms_save_cycle_nonce' ); ?>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label for="cycle_date" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Data de Encerramento do Ano</label>
@@ -195,27 +195,23 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
                     </div>
                 </div>
 
-                <div class="pt-10">
-                    <button type="submit" name="lms_save_settings" class="px-10 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-gold-500/20 transform hover:scale-[1.02]" style="background: linear-gradient(to right, #D4AF37, #F2D480) !important; color: #000 !important; border: none;">
-                        Salvar Configurações
-                    </button>
-                </div>
-                    <button type="submit" name="lms_save_settings" class="px-10 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-gold-500/20 transform hover:scale-[1.02]" style="background: linear-gradient(to right, #D4AF37, #F2D480) !important; color: #000 !important; border: none;">
-                        Salvar Configurações
-                    </button>
-                </div>
-            </form>
-        </div>
+	                <div class="pt-10">
+	                    <button type="submit" name="lms_save_settings" class="px-10 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-gold-500/20 transform hover:scale-[1.02]" style="background: linear-gradient(to right, #D4AF37, #F2D480) !important; color: #000 !important; border: none;">
+	                        Salvar Configurações
+	                    </button>
+	                </div>
+	            </form>
+	        </div>
 
         <!-- Critical Actions Card -->
         <div class="bg-red-900/5 p-8 rounded-3xl border border-red-900/20 relative overflow-hidden group">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-red-900/5 rounded-full blur-3xl group-hover:bg-red-900/10 transition-all"></div>
-            
+
             <h3 class="text-xl font-bold font-serif italic text-red-500 mb-6 flex items-center gap-3">
                 <span class="w-2 h-6 bg-red-500 rounded-full animate-pulse"></span>
                 Ações de Reset de Rede
             </h3>
-            
+
             <p class="text-[13px] text-gray-200 leading-relaxed mb-8 max-w-2xl">
                 O reset do ciclo é uma ação irreversível. Ao realizar o **Marco Zero**, todas as autoridades vinculadas no ciclo atual serão zeradas para todos os educadores, permitindo que a nova jornada anual comece com igualdade de condições.
             </p>
@@ -255,7 +251,7 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
     }
 
     /* Override inherited WP Admin Gray Styles */
-    .elite-admin-wrap input[type="date"], 
+    .elite-admin-wrap input[type="date"],
     .elite-admin-wrap input[type="text"],
     .elite-admin-wrap input[type="url"],
     .elite-admin-wrap select {
@@ -319,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 1. All Products Eligible Checkbox Logic
     const checkbox = document.getElementById('all_products_eligible');
     const container = document.getElementById('eligible-products-container');
-    
+
     if (checkbox && container) {
         checkbox.addEventListener('change', function() {
             if (this.checked) {
@@ -335,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const wrapper = document.getElementById(wrapperId);
         const trigger = document.getElementById(triggerId);
         const hiddenField = document.getElementById(hiddenId);
-        
+
         if (!wrapper || !trigger || !hiddenField) return;
 
         let ids = hiddenField.value.split(',').map(s => s.trim()).filter(s => s !== '');
@@ -343,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const renderTags = () => {
             // Clear existing tags but keep trigger input
             wrapper.querySelectorAll('.tag-chip').forEach(t => t.remove());
-            
+
             ids.forEach((id, index) => {
                 const chip = document.createElement('div');
                 chip.className = 'tag-chip';
@@ -353,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 wrapper.insertBefore(chip, trigger);
             });
-            
+
             hiddenField.value = ids.join(',');
         };
 
@@ -374,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
                 const val = trigger.value.replace(/[^0-9]/g, '').trim();
-                
+
                 if (val && !ids.includes(val)) {
                     ids.push(val);
                     trigger.value = '';

@@ -7,10 +7,10 @@ class Expressive_Engine {
 		add_action( 'wp_ajax_lms_send_chat_message', array( $this, 'ajax_send_chat_message' ) );
 		add_action( 'wp_ajax_lms_fetch_chat_messages', array( $this, 'ajax_fetch_chat_messages' ) );
 		add_action( 'wp_ajax_lms_upload_avatar', array( $this, 'ajax_upload_avatar' ) );
-		
+
 		// Force Open Comments for LMS
 		add_filter( 'comments_open', array( $this, 'force_open_lms_comments' ), 10, 2 );
-		
+
 		// ELITE CHAT (Standard WP Comments)
 		add_action( 'wp_ajax_lms_elite_comment_submit', array( $this, 'ajax_elite_comment_submit' ) );
 		add_action( 'wp_ajax_lms_elite_comment_fetch', array( $this, 'ajax_elite_comment_fetch' ) );
@@ -23,7 +23,7 @@ class Expressive_Engine {
 		// Elite API Sync & Manual Control
 		add_action( 'wp_ajax_lms_sync_all_api_status', array( $this, 'ajax_sync_all_api_status' ) );
 		add_action( 'wp_ajax_lms_set_manual_status', array( $this, 'ajax_set_manual_status' ) );
-		
+
 		// Benefits Management
 		add_action( 'wp_ajax_lms_toggle_discount_eligibility', array( $this, 'ajax_toggle_discount_eligibility' ) );
 		add_action( 'wp_ajax_lms_bulk_discount_control', array( $this, 'ajax_bulk_discount_control' ) );
@@ -68,7 +68,7 @@ class Expressive_Engine {
 
 		global $wpdb;
 		$table_chat = $wpdb->prefix . 'lms_chat_messages';
-		
+
 		$result = $wpdb->insert(
 			$table_chat,
 			array(
@@ -110,7 +110,7 @@ class Expressive_Engine {
 	 */
 	public function ajax_elite_comment_submit() {
 		check_ajax_referer( 'lms_engine_nonce', 'nonce' );
-		
+
 		if ( ! is_user_logged_in() ) wp_send_json_error( 'Login necessário.' );
 
 		$post_id = intval( $_POST['post_id'] );
@@ -168,7 +168,7 @@ class Expressive_Engine {
 	 */
 	public function ajax_elite_comment_fetch() {
 		check_ajax_referer( 'lms_engine_nonce', 'nonce' );
-		
+
 		$post_id = intval( $_GET['post_id'] );
 		$last_id = intval( $_GET['last_id'] );
 
@@ -250,7 +250,7 @@ class Expressive_Engine {
 
 		$lesson_id = intval( $_POST['lesson_id'] );
 		$user_id   = get_current_user_id();
-		
+
 		$completed_lessons = get_user_meta( $user_id, '_lms_completed_lessons', true );
 		if ( ! is_array( $completed_lessons ) ) {
 			$completed_lessons = array();
@@ -264,7 +264,7 @@ class Expressive_Engine {
 			$completed_lessons = array_diff( $completed_lessons, array( $lesson_id ) );
 			update_user_meta( $user_id, '_lms_completed_lessons', $completed_lessons );
 			Expressive_Logger::info( 'ENGINE', "Aula DESMARCADA como concluída", array( 'user_id' => $user_id, 'lesson_id' => $lesson_id ) );
-			
+
 			// Update custom progress table to 'active' or 'started'
 			$wpdb->update(
 				$table_progress,
@@ -279,7 +279,7 @@ class Expressive_Engine {
 			// Mark as completed
 			$completed_lessons[] = $lesson_id;
 			update_user_meta( $user_id, '_lms_completed_lessons', $completed_lessons );
-			
+
 			$wpdb->replace(
 				$table_progress,
 				array(
@@ -315,7 +315,7 @@ class Expressive_Engine {
 		require_once( ABSPATH . 'wp-admin/includes/file.php' );
 		require_once( ABSPATH . 'wp-admin/includes/image.php' );
 		require_once( ABSPATH . 'wp-admin/includes/media.php' );
-		
+
 		// Validate file type
 		$uploaded_file = $_FILES['avatar'];
 		$allowed_types = array( 'image/jpeg', 'image/png', 'image/webp' );
@@ -350,7 +350,7 @@ class Expressive_Engine {
 				// Generate unique optimized filename using base name and user-specific suffix
 				$filename = $image->generate_filename( $thumb_suffix, null, 'jpg' );
 				$saved = $image->save( $filename, 'image/jpeg' );
-				
+
 				if ( ! is_wp_error( $saved ) ) {
 					$new_file_url = str_replace( basename( $file_path ), basename( $saved['path'] ), $file_url );
 					$new_file_path = $saved['path'];
@@ -362,7 +362,7 @@ class Expressive_Engine {
 					if ( $old_path && $old_path !== $new_file_path && file_exists( $old_path ) ) {
 						@unlink( $old_path );
 					}
-					
+
 					$file_url = $new_file_url;
 				}
 			}
@@ -396,7 +396,7 @@ class Expressive_Engine {
 		}
 
 		delete_user_meta( $user_id, '_lms_custom_avatar' );
-		
+
 		$default_avatar = Expressive_Core::get_elite_avatar( $user_id, 128, 'w-full h-full object-cover' );
 		wp_send_json_success( array( 'html' => $default_avatar, 'message' => 'Avatar removido!' ) );
 	}
@@ -473,7 +473,7 @@ class Expressive_Engine {
 	 */
 	public function apply_lms_discounts( $cart ) {
 		if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
-		
+
 		$user_id = get_current_user_id();
 		$discount_percent = 0;
 		$label = '';
@@ -589,11 +589,11 @@ class Expressive_Engine {
 				}
 
 				$cart->add_fee( $label, $discount_amount );
-				
-				Expressive_Logger::info( 'DISCOUNT', "Desconto aplicado", array( 
-					'user_id'       => $user_id, 
-					'category'      => $detected_category, 
-					'base_percent'  => ($discount_percent * 100) . '%', 
+
+				Expressive_Logger::info( 'DISCOUNT', "Desconto aplicado", array(
+					'user_id'       => $user_id,
+					'category'      => $detected_category,
+					'base_percent'  => ($discount_percent * 100) . '%',
 					'full_subtotal' => $total_subtotal,
 					'discount'      => $discount_amount,
 					'excluded_ids'  => $excluded_ids,
@@ -610,10 +610,11 @@ class Expressive_Engine {
 	 * Sync all users from external API.
 	 */
 	public function ajax_sync_all_api_status() {
+		check_ajax_referer( 'lms_api_mgmt_nonce', 'nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Não autorizado.' );
-		
+
 		$success = Expressive_External_API::sync_all_users_status();
-		
+
 		if ( $success ) {
 			wp_send_json_success( 'Sincronização concluída!' );
 		} else {
@@ -628,7 +629,7 @@ class Expressive_Engine {
 	 */
 	public function ajax_set_manual_status() {
 		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Não autorizado.' );
-		
+
 		$user_id = isset( $_POST['user_id'] ) ? intval( $_POST['user_id'] ) : 0;
 		$new_status = isset( $_POST['new_status'] ) ? sanitize_text_field( $_POST['new_status'] ) : '';
 
@@ -670,7 +671,7 @@ class Expressive_Engine {
 
 		$mime_type = get_post_mime_type( $file_id );
 		$file_name = get_the_title( $file_id ) ?: basename( $file_path );
-		
+
 		// Ensure file name has extension if missing from title
 		$ext = pathinfo( $file_path, PATHINFO_EXTENSION );
 		if ( strpos( $file_name, '.' . $ext ) === false ) {
@@ -689,7 +690,7 @@ class Expressive_Engine {
 		header( 'Cache-Control: must-revalidate' );
 		header( 'Pragma: public' );
 		header( 'Content-Length: ' . filesize( $file_path ) );
-		
+
 		readfile( $file_path );
 		exit;
 	}
@@ -707,7 +708,7 @@ class Expressive_Engine {
 		if ( ! $user_id ) wp_send_json_error( 'ID de usuário inválido.' );
 
 		update_user_meta( $user_id, '_lms_discount_eligible', $status );
-		
+
 		Expressive_Logger::info( 'BENEFITS', "Elegibilidade de desconto alterada", array( 'target_user' => $user_id, 'new_status' => $status, 'admin_id' => get_current_user_id() ) );
 		wp_send_json_success( 'Status atualizado!' );
 	}
@@ -720,7 +721,7 @@ class Expressive_Engine {
 		if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Não autorizado.' );
 
 		$type = isset( $_POST['bulk_type'] ) ? sanitize_text_field( $_POST['bulk_type'] ) : '';
-		
+
 		$args = array( 'fields' => 'ID' );
 		$status = 'yes';
 		$message = '';
@@ -774,7 +775,7 @@ class Expressive_Engine {
 		}
 
 		$pending_role = get_user_meta( $user_id, '_lms_pending_role', true );
-		
+
 		if ( ! $pending_role ) {
 			wp_send_json_error( 'Nenhum upgrade pendente encontrado para este usuário.' );
 		}
@@ -788,7 +789,7 @@ class Expressive_Engine {
 		// Clear pending flags
 		delete_user_meta( $user_id, '_lms_pending_role' );
 		update_user_meta( $user_id, '_lms_approval_status', 'approved' );
-		
+
 		// Auto-enable member discounts (Separate from platform access)
 		update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
 
@@ -799,8 +800,8 @@ class Expressive_Engine {
 			delete_user_meta( $user_id, '_lms_is_educator' );
 		}
 
-		Expressive_Logger::info( 'AUTH', "Upgrade de nível APROVADO", array( 
-			'user_id' => $user_id, 
+		Expressive_Logger::info( 'AUTH', "Upgrade de nível APROVADO", array(
+			'user_id' => $user_id,
 			'new_role' => $pending_role,
 			'admin_id' => get_current_user_id()
 		) );
@@ -817,7 +818,7 @@ class Expressive_Engine {
 
 		$user_id = intval( $_POST['user_id'] );
 		$user = new WP_User( $user_id );
-		
+
 		if ( ! $user->exists() ) wp_send_json_error( 'Usuário não encontrado.' );
 
 		if ( in_array( 'administrator', (array) $user->roles ) ) {
@@ -831,7 +832,7 @@ class Expressive_Engine {
 		update_user_meta( $user_id, '_lms_executing_approval', true );
 
 		$user->set_role( $new_role );
-		
+
 		// Clear any pending statuses since we are doing a forced change
 		delete_user_meta( $user_id, '_lms_pending_role' );
 		update_user_meta( $user_id, '_lms_approval_status', 'approved' );
@@ -845,8 +846,8 @@ class Expressive_Engine {
 			update_user_meta( $user_id, '_lms_discount_eligible', 'yes' );
 		}
 
-		Expressive_Logger::info( 'BENEFITS', "Categoria de membro TROCADA manualmente", array( 
-			'user_id' => $user_id, 
+		Expressive_Logger::info( 'BENEFITS', "Categoria de membro TROCADA manualmente", array(
+			'user_id' => $user_id,
 			'old_role' => $is_educadora ? 'educadora' : 'autoridade',
 			'new_role' => $new_role,
 			'admin_id' => get_current_user_id()
@@ -860,7 +861,7 @@ class Expressive_Engine {
 	 */
 	public function ajax_cancel_subscription_request() {
 		check_ajax_referer( 'lms_engine_nonce', 'nonce' );
-		
+
 		if ( ! is_user_logged_in() ) wp_send_json_error( 'Acesso negado.' );
 
 		$user_id = get_current_user_id();
@@ -881,30 +882,33 @@ class Expressive_Engine {
 	public function elite_daily_subscription_cleanup() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'elite_subscription_access';
-		
+
 		$expired = $wpdb->get_results( "SELECT * FROM $table WHERE status = 'grace_period' AND grace_ends_at < NOW()" );
 
 		foreach ( $expired as $row ) {
-			$wpdb->update( $table, 
-				array( 'status' => 'cancelled', 'last_sync_at' => current_time('mysql') ), 
-				array( 'id' => $row->id ) 
+			$wpdb->update( $table,
+				array( 'status' => 'cancelled', 'last_sync_at' => current_time('mysql') ),
+				array( 'id' => $row->id )
 			);
-			
+
 			Expressive_Logger::info( 'CLEANUP', "Grace Period encerrado automaticamente", array( 'email' => $row->email ) );
-			
-			Expressive_External_API::record_access_event( 
-				$row->email, 
-				'cleanup_expired_grace', 
-				'grace_period', 
-				'cancelled', 
-				'Grace Period expirado via rotina diária.', 
-				'SYSTEM_CRON', 
-				'SUCCESS' 
+
+			Expressive_External_API::record_access_event(
+				$row->email,
+				'cleanup_expired_grace',
+				'grace_period',
+				'cancelled',
+				'Grace Period expirado via rotina diária.',
+				'SYSTEM_CRON',
+				'SUCCESS'
 			);
 
 			// Sync to user meta
 			if ( $row->user_id ) {
 				update_user_meta( $row->user_id, '_lms_elite_api_status', 'inactive' );
+				if ( ( get_user_meta( $row->user_id, '_lms_elite_manual_status', true ) ?: 'none' ) === 'none' ) {
+					update_user_meta( $row->user_id, '_lms_subscription_status', 'suspended' );
+				}
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 <?php
 /**
  * Template Name: Cancellation Survey
- * 
+ *
  * Standalone page for subscription cancellation feedback.
  */
 
@@ -14,10 +14,11 @@ $user_id = get_current_user_id();
 $user_data = get_userdata( $user_id );
 $access = new Expressive_Access();
 $is_active = $access->has_active_subscription( $user_id );
-$expiry_date = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+$access_state = Expressive_Access::get_user_access_snapshot( $user_id );
+$expiry_date = $access_state['access_expires_at'] ?? get_user_meta( $user_id, '_lms_elite_api_expiry', true );
 
 // If already inactive and expired, no need to cancel
-if ( ! $is_active && ( ! $expiry_date || strtotime( $expiry_date ) < time() ) ) {
+if ( empty( $access_state['can_cancel'] ) && ( ! $is_active || ! empty( $access_state['is_lifetime'] ) || ! empty( $access_state['is_manually_blocked'] ) ) ) {
     wp_redirect( site_url( '/area-de-membros/' ) );
     exit;
 }
@@ -38,7 +39,7 @@ if ( ! $is_active && ( ! $expiry_date || strtotime( $expiry_date ) < time() ) ) 
     </style>
 </head>
 <body class="text-white min-h-screen flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
-    
+
     <!-- Background Elements -->
     <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-gold-500/10 rounded-full blur-[120px]"></div>
     <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-gold-500/5 rounded-full blur-[120px]"></div>
@@ -140,7 +141,7 @@ if ( ! $is_active && ( ! $expiry_date || strtotime( $expiry_date ) < time() ) ) 
             }
 
             const reason = reasonEl.value + (details ? ': ' + details : '');
-            
+
             if (!confirm('Tem certeza que deseja cancelar sua assinatura Elite? Seu acesso será mantido apenas até o fim da vigência atual.')) {
                 return;
             }
