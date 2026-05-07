@@ -1,33 +1,55 @@
 <?php 
+global $wpdb;
+$table_access = $wpdb->prefix . 'elite_subscription_access';
+$table_events = $wpdb->prefix . 'elite_subscription_events';
+
 // Logic for saving API settings
 if ( isset( $_POST['lms_save_api_settings'] ) && check_admin_referer( 'lms_save_api_nonce' ) ) {
     update_option( 'lms_external_api_url', esc_url_raw( $_POST['api_url'] ) );
     update_option( 'lms_external_api_token', sanitize_text_field( $_POST['api_token'] ) );
     
-    // Save Sync Interval (min 3 mins)
-    $interval = isset( $_POST['api_sync_interval'] ) ? max( 3, intval( $_POST['api_sync_interval'] ) ) : 3;
-    update_option( 'lms_api_sync_interval', $interval );
+    // Clear individual overrides to ensure unified endpoint is used
+    delete_option( 'lms_external_api_url_status' );
+    delete_option( 'lms_external_api_url_sync' );
+    delete_option( 'lms_external_api_url_cancel' );
 
-    echo '<div class="updated notice is-dismissible" style="background: rgba(212, 175, 55, 0.1); border-left: 4px solid #D4AF37; color: #D4AF37; padding: 1px 15px; margin: 10px 20px 0 0; border-radius: 8px; font-weight: bold;"><p>Configurações de Conectividade Salvas!</p></div>';
+    echo '<div class="updated notice is-dismissible" style="background: rgba(212, 175, 55, 0.1); border-left: 4px solid #D4AF37; color: #D4AF37; padding: 1px 15px; margin: 10px 20px 0 0; border-radius: 8px; font-weight: bold;"><p>Configurações de Conectividade Centralizadas!</p></div>';
+}
+
+// Logic for manual actions (from subscriptions dashboard)
+if ( isset( $_GET['action_type'] ) && check_admin_referer( 'lms_subscription_action' ) ) {
+    $email = sanitize_email( $_GET['email'] );
+    
+    if ( $_GET['action_type'] === 'sync' ) {
+        $user = get_user_by( 'email', $email );
+        if ( $user ) {
+            Expressive_External_API::check_user_status( $user->ID );
+            echo '<div class="updated notice is-dismissible" style="background: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; color: #22c55e; padding: 10px; margin: 10px 20px 10px 0; border-radius: 8px;"><p>Sincronização concluída para ' . esc_html($email) . '</p></div>';
+        }
+    } elseif ( $_GET['action_type'] === 'expire' ) {
+        $wpdb->update( $table_access, array( 'status' => 'cancelled', 'last_sync_at' => current_time('mysql') ), array( 'email' => $email ) );
+        echo '<div class="updated notice is-dismissible" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; color: #ef4444; padding: 10px; margin: 10px 20px 10px 0; border-radius: 8px;"><p>Acesso encerrado para ' . esc_html($email) . '</p></div>';
+    }
 }
 
 $api_url = get_option( 'lms_external_api_url', '' );
 $api_token = get_option( 'lms_external_api_token', '' );
-$sync_interval = get_option( 'lms_api_sync_interval', 3 );
 $last_api_log = get_option( 'lms_api_last_log', array() );
 
-// Fetch Users for Audit (Same filter as Elite Members -> Assinantes)
-$users = get_users( array( 
-    'orderby' => 'registered', 
-    'order'   => 'DESC',
-    'role__in' => array('administrator', 'educadora', 'autoridade')
-) );
-$total_users = count( $users );
+// Fetch Stats
+$total_active = $wpdb->get_var( "SELECT COUNT(*) FROM $table_access WHERE status = 'active'" );
+$total_grace  = $wpdb->get_var( "SELECT COUNT(*) FROM $table_access WHERE status = 'grace_period'" );
+
+// Fetch Subscriptions
+$subscriptions = $wpdb->get_results( "SELECT * FROM $table_access ORDER BY last_sync_at DESC LIMIT 100" );
+
+// Fetch Recent Events
+$events = $wpdb->get_results( "SELECT * FROM $table_events ORDER BY created_at DESC LIMIT 15" );
 ?>
 
 <div class="elite-admin-wrap bg-[#000] text-white min-h-screen p-4 sm:p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans max-w-full overflow-x-hidden">
     
-    <!-- HEADER & CONFIG TOP SECTION -->
+    <!-- HEADER -->
     <header class="mb-10 text-center md:text-left">
         <div class="flex flex-col md:flex-row justify-between items-center gap-6 border-b border-white/5 pb-8">
             <div class="flex items-center gap-4">
@@ -36,18 +58,19 @@ $total_users = count( $users );
                 </div>
                 <div>
                     <h1 class="font-serif italic text-4xl mb-1 leading-tight text-white tracking-tight">Elite <span style="color: #D4AF37;">API</span> Manager</h1>
-                    <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-bold">Arquitetura de Conectividade de Alto Padrão</p>
+                    <p class="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-bold">Gestão Unificada de Acesso e Gateway</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-4">
-                <div class="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-4 backdrop-blur-md">
-                    <div class="flex flex-col">
-                        <span class="text-[8px] uppercase font-black tracking-widest text-zinc-500 mb-0.5">Status do Servidor</span>
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full <?php echo $api_url ? 'bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]' : 'bg-red-500'; ?>"></span>
-                            <span class="text-[10px] uppercase font-bold tracking-widest <?php echo $api_url ? 'text-green-500' : 'text-red-500'; ?>"><?php echo $api_url ? 'Conectado' : 'Offline'; ?></span>
-                        </div>
+                <div class="flex gap-2">
+                    <div class="bg-white/5 border border-white/10 px-6 py-2 rounded-2xl">
+                        <span class="text-[7px] uppercase font-black tracking-widest text-zinc-500 block">Ativos</span>
+                        <span class="text-sm font-bold text-green-500"><?php echo $total_active; ?></span>
+                    </div>
+                    <div class="bg-white/5 border border-white/10 px-6 py-2 rounded-2xl">
+                        <span class="text-[7px] uppercase font-black tracking-widest text-zinc-500 block">Grace</span>
+                        <span class="text-sm font-bold text-gold-500"><?php echo $total_grace; ?></span>
                     </div>
                 </div>
                 <button onclick="syncGlobalMembers(this)" class="px-8 py-4 bg-gold-500 hover:bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all shadow-xl shadow-gold-600/20 flex items-center gap-3 active:scale-95" style="background-color: #D4AF37 !important; color: #000 !important;">
@@ -58,182 +81,171 @@ $total_users = count( $users );
         </div>
     </header>
 
-    <!-- CONFIG & LOGS (FULL WIDTH) -->
+    <!-- CONFIG & MONITOR -->
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 mb-12">
-        <!-- Configuration -->
-        <div class="xl:col-span-7 glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden group shadow-2xl">
-            <div class="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-transparent to-gold-500 opacity-30"></div>
-            <h3 class="text-xl font-bold font-serif italic mb-10 text-white flex items-center gap-3">
+        <!-- Configuration Card -->
+        <div class="xl:col-span-8 glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden group shadow-2xl">
+            <h3 class="text-xl font-bold font-serif italic mb-8 text-white flex items-center gap-3">
                 <span class="w-1.5 h-6 bg-gold-500 rounded-full shadow-[0_0_15px_#D4AF37]" style="background-color: #D4AF37;"></span>
-                Configuração Estrutural
+                Configuração Estrutural Unificada
             </h3>
             
-            <form method="post" action="" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-end">
+            <form method="post" action="" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                 <?php wp_nonce_field( 'lms_save_api_nonce' ); ?>
-                <div class="md:col-span-1 lg:col-span-4 space-y-3">
-                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Endpoint de Sincronização</label>
-                    <input name="api_url" type="url" value="<?php echo esc_attr( $api_url ); ?>" placeholder="https://api.exemplo.com/v1" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900 border-l-2 border-l-gold-500/20">
+                <div class="md:col-span-6 space-y-3">
+                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Endpoint Gateway (Supabase/Edge)</label>
+                    <input name="api_url" type="url" value="<?php echo esc_attr( $api_url ); ?>" placeholder="https://..." class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-4 text-sm focus:border-gold-500/50 outline-none transition-all text-white border-l-2 border-l-gold-500/20">
                 </div>
-                <div class="md:col-span-1 lg:col-span-4 space-y-3">
-                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Chave de Acesso</label>
-                    <input name="api_token" type="password" value="<?php echo esc_attr( $api_token ); ?>" placeholder="••••••••••••" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900">
+                <div class="md:col-span-4 space-y-3">
+                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Bearer Token / Chave Secreta</label>
+                    <input name="api_token" type="password" value="<?php echo esc_attr( $api_token ); ?>" placeholder="••••••••••••" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-4 text-sm focus:border-gold-500/50 outline-none transition-all text-white">
                 </div>
-                <div class="md:col-span-1 lg:col-span-2 space-y-3">
-                    <label class="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600 ml-1">Sinc. (Minutos)</label>
-                    <input name="api_sync_interval" type="number" min="3" value="<?php echo esc_attr( $sync_interval ); ?>" class="w-full bg-black/80 border border-white/5 rounded-2xl px-6 py-5 text-sm focus:border-gold-500/50 outline-none transition-all text-white placeholder:text-zinc-900">
-                </div>
-                <div class="md:col-span-1 lg:col-span-2">
-                    <button type="submit" name="lms_save_api_settings" class="w-full py-5 bg-gold-500 hover:bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg shadow-gold-500/20" style="background-color: #D4AF37 !important; color: #000 !important;">
+                <div class="md:col-span-2">
+                    <button type="submit" name="lms_save_api_settings" class="w-full py-4 bg-gold-500 hover:bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-lg shadow-gold-500/20" style="background-color: #D4AF37 !important; color: #000 !important;">
                         Salvar
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Latest Log Info -->
-        <div class="xl:col-span-5 glass p-10 rounded-[40px] border border-white/10 relative overflow-hidden bg-white/[0.01]">
-            <div class="flex justify-between items-center mb-10">
-                <h3 class="text-xl font-bold font-serif italic text-white flex items-center gap-3">
-                    <span class="w-1.5 h-6 bg-zinc-800 rounded-full"></span>
-                    Monitor de Tráfego
-                </h3>
-                <span class="text-[8px] bg-white/5 px-3 py-1 rounded-full text-zinc-500 font-black uppercase tracking-widest border border-white/5">Última Resposta</span>
-            </div>
+        <!-- Monitor Card -->
+        <div class="xl:col-span-4 glass p-8 rounded-[40px] border border-white/10 relative overflow-hidden bg-white/[0.01]">
+            <h3 class="text-lg font-bold font-serif italic text-white flex items-center gap-3 mb-6">
+                <span class="w-1.5 h-6 bg-zinc-800 rounded-full"></span>
+                Tráfego
+            </h3>
             
             <?php if ( ! empty( $last_api_log ) ) : ?>
-                <div class="flex gap-4 mb-6">
-                    <div class="flex-1 bg-black/60 p-4 rounded-2xl border border-white/5">
-                        <span class="text-[7px] text-zinc-700 uppercase font-black block mb-1 tracking-widest">HTTP Status</span>
-                        <span class="text-sm font-mono <?php echo $last_api_log['code'] < 400 ? 'text-green-500' : 'text-red-500'; ?> font-bold"><?php echo $last_api_log['code']; ?> <?php echo $last_api_log['code'] == 200 ? 'OK' : 'ERR'; ?></span>
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-1 bg-black/60 p-3 rounded-2xl border border-white/5">
+                        <span class="text-[7px] text-zinc-700 uppercase font-black block mb-1 tracking-widest">HTTP</span>
+                        <span class="text-xs font-mono <?php echo $last_api_log['code'] < 400 ? 'text-green-500' : 'text-red-500'; ?> font-bold"><?php echo $last_api_log['code']; ?></span>
                     </div>
-                    <div class="flex-1 bg-black/60 p-4 rounded-2xl border border-white/5">
-                        <span class="text-[7px] text-zinc-700 uppercase font-black block mb-1 tracking-widest">Timestamp</span>
-                        <span class="text-xs font-mono text-zinc-500"><?php echo date('H:i:s', strtotime($last_api_log['timestamp'])); ?></span>
+                    <div class="flex-1 bg-black/60 p-3 rounded-2xl border border-white/5">
+                        <span class="text-[7px] text-zinc-700 uppercase font-black block mb-1 tracking-widest">Hora</span>
+                        <span class="text-[10px] font-mono text-zinc-500"><?php echo date('H:i:s', strtotime($last_api_log['timestamp'])); ?></span>
                     </div>
                 </div>
-                <div class="bg-black/80 p-5 rounded-3xl border border-white/5 group relative">
-                    <div class="max-h-20 overflow-y-auto custom-scrollbar">
-                        <pre class="text-[10px] font-mono text-gold-500/50 leading-tight"><?php echo esc_html( $last_api_log['response'] ); ?></pre>
+                <div class="bg-black/80 p-4 rounded-2xl border border-white/5">
+                    <div class="max-h-12 overflow-y-auto custom-scrollbar">
+                        <pre class="text-[9px] font-mono text-gold-500/50 leading-tight"><?php echo esc_html( $last_api_log['response'] ); ?></pre>
                     </div>
-                    <div class="absolute bottom-2 right-4 text-[7px] text-zinc-800 font-black uppercase tracking-tighter">JSON Stream</div>
-                </div>
-            <?php else : ?>
-                <div class="flex flex-col items-center justify-center h-32 bg-black/20 rounded-[30px] border border-dashed border-white/10">
-                    <span class="dashicons dashicons-cloud-upload text-zinc-800 mb-2" style="font-size: 30px; width: 30px; height: 30px;"></span>
-                    <p class="text-[9px] font-black uppercase tracking-widest text-zinc-700">Aguardando Primeira Conexão</p>
                 </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- MAIN AUDIT TABLE -->
-    <div class="glass rounded-[48px] border border-white/5 overflow-hidden shadow-2xl relative">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-gold-500/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-        
-        <div class="p-10 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/[0.01] gap-4">
-            <div>
-                <h3 class="text-2xl font-bold font-serif italic text-white flex items-center gap-3">Painel de Auditoria e Auditoria</h3>
-                <p class="text-[10px] text-zinc-600 mt-1 uppercase tracking-[0.2em] font-black">Intervenção Manual vs Inteligência da API</p>
+    <!-- MAIN SUBSCRIPTION MANAGEMENT -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <!-- Members List -->
+        <div class="xl:col-span-9 glass rounded-[48px] border border-white/5 overflow-hidden shadow-2xl relative">
+            <div class="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/[0.01] gap-4">
+                <div>
+                    <h3 class="text-2xl font-bold font-serif italic text-white flex items-center gap-3">Gestão de Membros & Acesso</h3>
+                    <p class="text-[10px] text-zinc-600 mt-1 uppercase tracking-[0.2em] font-black">Sincronização Local vs Gateway Asaas</p>
+                </div>
+                <div class="flex items-center gap-2">
+                     <span class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black text-white border border-white/10 uppercase tracking-widest">
+                        <?php echo count($subscriptions); ?> Registros
+                    </span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                 <span class="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black text-white border border-white/10 uppercase tracking-widest">
-                    <?php echo $total_users; ?> Membros Carregados
-                </span>
-            </div>
-        </div>
 
-        <div class="overflow-x-auto custom-scrollbar">
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="text-[10px] uppercase tracking-[0.25em] text-zinc-700 bg-white/[0.01]">
-                        <th class="px-10 py-6">Perfil do Membro</th>
-                        <th class="px-10 py-6 text-center">Status de Acesso</th>
-                        <th class="px-10 py-6 text-center">Próxima Cobrança</th>
-                        <th class="px-10 py-6 text-center">Diretriz de Controle</th>
-                        <th class="px-10 py-6 text-right">Ficha</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    <?php 
-                        $access_checker = new Expressive_Access();
-                        foreach ( $users as $user ) : 
-                        $is_active = $access_checker->has_active_subscription( $user->ID, false );
-                        $is_admin = user_can( $user->ID, 'manage_options' );
-                        $manual_status = get_user_meta( $user->ID, '_lms_elite_manual_status', true ) ?: 'none';
-                    ?>
-                    <tr id="user-row-<?php echo $user->ID; ?>" class="hover:bg-white/[0.03] transition-all group">
-                        <td class="px-10 py-6">
-                            <div class="flex items-center gap-5">
-                                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white/5 group-hover:border-gold-500/50 transition-all shadow-xl relative">
-                                    <?php echo get_avatar( $user->ID, 56, '', '', array('class' => 'w-full h-full object-cover') ); ?>
-                                    <?php if($is_admin): ?>
-                                        <div class="absolute inset-0 bg-gold-500/10 ring-1 ring-gold-500/50 rounded-full"></div>
-                                    <?php endif; ?>
-                                </div>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] uppercase tracking-[0.25em] text-zinc-700 bg-white/[0.01]">
+                            <th class="px-8 py-5">Membro</th>
+                            <th class="px-8 py-5 text-center">Status Local</th>
+                            <th class="px-8 py-5 text-center">Expira em</th>
+                            <th class="px-8 py-5 text-center">Sincronizado</th>
+                            <th class="px-8 py-5 text-right">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        <?php foreach ( $subscriptions as $sub ) : ?>
+                        <tr class="hover:bg-white/[0.03] transition-all group">
+                            <td class="px-8 py-5">
                                 <div class="flex flex-col">
-                                    <span class="text-base font-bold <?php echo $is_admin ? 'text-gold-500' : 'text-white'; ?> tracking-tight"><?php echo esc_html( $user->display_name ); ?></span>
-                                    <span class="text-[11px] text-zinc-600 font-medium"><?php echo esc_html( $user->user_email ); ?></span>
-                                    <?php if($is_admin): ?>
-                                        <div class="mt-1.5 flex items-center gap-1.5">
-                                            <span class="text-[8px] bg-gold-500 text-black px-2 py-0.5 rounded-full font-black uppercase tracking-[0.1em]">VIP Admin</span>
-                                        </div>
+                                    <span class="text-sm font-bold text-white"><?php echo esc_html($sub->email); ?></span>
+                                    <span class="text-[9px] text-zinc-600 uppercase font-bold tracking-tighter"><?php echo esc_html($sub->plan_name ?: 'Elite Member'); ?></span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5 text-center">
+                                <?php 
+                                    $status_class = 'bg-zinc-800 text-zinc-400';
+                                    if($sub->status === 'active') $status_class = 'bg-green-500/10 text-green-500 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]';
+                                    if($sub->status === 'grace_period') $status_class = 'bg-gold-500/10 text-gold-500 border border-gold-500/20 shadow-[0_0_15px_rgba(212,175,55,0.1)]';
+                                    if($sub->status === 'cancelled') $status_class = 'bg-red-500/10 text-red-500 border border-red-500/20';
+                                ?>
+                                <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest <?php echo $status_class; ?>">
+                                    <?php echo str_replace('_', ' ', $sub->status); ?>
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-center">
+                                <div class="flex flex-col">
+                                    <span class="text-[11px] text-white"><?php echo $sub->access_expires_at ? date('d/m/Y', strtotime($sub->access_expires_at)) : '—'; ?></span>
+                                    <?php if($sub->status === 'grace_period') : ?>
+                                        <span class="text-[8px] text-gold-500 font-bold uppercase">Grace até <?php echo date('d/m/Y', strtotime($sub->grace_ends_at)); ?></span>
                                     <?php endif; ?>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="px-10 py-6 text-center">
-                            <?php if ( $is_admin || $is_active ) : ?>
-                                <div class="inline-flex items-center gap-2.5 px-5 py-2 bg-green-500/20 rounded-2xl border border-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.1)]">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_12px_#22c55e]"></span>
-                                    <span class="text-[10px] font-black text-green-500 uppercase tracking-widest">Liberado</span>
+                            </td>
+                            <td class="px-8 py-5 text-center">
+                                <span class="text-[9px] font-mono text-zinc-600"><?php echo date('d/m H:i', strtotime($sub->last_sync_at)); ?></span>
+                            </td>
+                            <td class="px-8 py-5 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <a href="<?php echo wp_nonce_url( admin_url('admin.php?page=elite-api&action_type=sync&email=' . $sub->email), 'lms_subscription_action' ); ?>" class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-500 hover:text-gold-500 hover:bg-gold-500/10 transition-all shadow-inner" title="Sincronizar Agora">
+                                        <span class="dashicons dashicons-update" style="font-size: 15px;"></span>
+                                    </a>
+                                    <?php if($sub->status !== 'cancelled') : ?>
+                                    <a href="<?php echo wp_nonce_url( admin_url('admin.php?page=elite-api&action_type=expire&email=' . $sub->email), 'lms_subscription_action' ); ?>" class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all shadow-inner" title="Revogar Acesso">
+                                        <span class="dashicons dashicons-no" style="font-size: 15px;"></span>
+                                    </a>
+                                    <?php endif; ?>
                                 </div>
-                            <?php else : ?>
-                                <div class="inline-flex items-center gap-2.5 px-5 py-2 bg-red-500/20 rounded-2xl border border-red-500/30 shadow-[0_0_40px_rgba(239,68,68,0.1)]">
-                                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_12px_#ef4444]"></span>
-                                    <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Suspenso</span>
-                                </div>
-                            <?php endif; ?>
-                        </td>
-                        <td class="px-10 py-6 text-center">
-                            <?php 
-                                $expiry = get_user_meta( $user->ID, '_lms_elite_api_expiry', true );
-                                if ( $expiry ) :
-                                    $date_formatted = date_i18n( 'd/m/Y', strtotime( $expiry ) );
-                            ?>
-                                <div class="flex flex-col items-center">
-                                    <span class="text-[11px] font-mono text-gold-500/80"><?php echo $date_formatted; ?></span>
-                                    <span class="text-[7px] uppercase text-zinc-700 font-black mt-1">Sincronizado</span>
-                                </div>
-                            <?php else : ?>
-                                <span class="text-[9px] text-zinc-800 uppercase font-black tracking-widest">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="px-10 py-6 text-center">
-                            <?php if ( ! $is_admin ) : ?>
-                                <div class="flex items-center justify-center gap-1 p-1 bg-black/50 rounded-2xl border border-white/5 inline-flex">
-                                    <button onclick="changeAccessState(<?php echo $user->ID; ?>, 'none', this)" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all <?php echo $manual_status === 'none' ? 'bg-zinc-800 text-white border border-white/10 ring-1 ring-white/20' : 'text-zinc-600 hover:text-zinc-300'; ?>">Automático</button>
-                                    <button onclick="changeAccessState(<?php echo $user->ID; ?>, 'blocked', this)" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all <?php echo $manual_status === 'blocked' ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-zinc-600 hover:text-red-500'; ?>"><span class="dashicons dashicons-lock mr-1" style="font-size: 10px; width: 10px; height: 10px;"></span>Bloquear</button>
-                                    <button onclick="changeAccessState(<?php echo $user->ID; ?>, 'unblocked', this)" class="px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all <?php echo $manual_status === 'unblocked' ? 'bg-green-600 text-white shadow-lg shadow-green-600/30' : 'text-zinc-600 hover:text-green-400'; ?>"><span class="dashicons dashicons-unlock mr-1" style="font-size: 10px; width: 10px; height: 10px;"></span>Liberar</button>
-                                </div>
-                            <?php else: ?>
-                                <div class="text-[9px] text-zinc-800 font-black uppercase tracking-[0.3em]">Imunidade Ativa</div>
-                            <?php endif; ?>
-                        </td>
-                        <td class="px-10 py-6 text-right">
-                            <a href="<?php echo get_edit_user_link( $user->ID ); ?>" class="w-10 h-10 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center text-zinc-600 hover:text-gold-500 hover:border-gold-500/30 transition-all inline-flex" title="Ver Ficha Técnica">
-                                <span class="dashicons dashicons-id-alt"></span>
-                            </a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="p-8 bg-white/[0.01] text-center border-t border-white/5">
-            <p class="text-[10px] italic text-zinc-700 font-serif tracking-widest uppercase">Engine V3.0 • Criptografia de Ponta a Ponta • Elite LMS System</p>
+        <!-- Right Audit Log -->
+        <div class="xl:col-span-3 space-y-6">
+            <div class="glass p-8 rounded-[40px] border border-white/5 h-full relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 rounded-full blur-2xl"></div>
+                <h3 class="text-xl font-bold font-serif italic text-white flex items-center gap-3 mb-8">
+                    <span class="w-1.5 h-6 bg-zinc-800 rounded-full"></span>
+                    Audit Trail
+                </h3>
+
+                <div class="space-y-4 max-h-[800px] overflow-y-auto custom-scrollbar pr-2">
+                    <?php foreach ( $events as $event ) : ?>
+                    <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl group hover:border-white/10 transition-all">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-gold-500 bg-gold-500/10 px-2 py-0.5 rounded-full"><?php echo str_replace('_', ' ', $event->action); ?></span>
+                            <span class="text-[8px] text-zinc-700 font-mono"><?php echo date('H:i', strtotime($event->created_at)); ?></span>
+                        </div>
+                        <p class="text-[11px] text-white font-bold truncate mb-1"><?php echo esc_html($event->email); ?></p>
+                        <div class="flex items-center gap-2 text-[8px] font-mono">
+                            <span class="text-zinc-600"><?php echo $event->status_before ?: '?'; ?></span>
+                            <span class="text-zinc-800">→</span>
+                            <span class="text-zinc-300"><?php echo $event->status_after ?: '?'; ?></span>
+                        </div>
+                        <?php if($event->reason) : ?>
+                            <p class="mt-2 text-[9px] text-zinc-500 italic leading-snug border-t border-white/5 pt-2">
+                                "<?php echo esc_html($event->reason); ?>"
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
     </div>
+
 </div>
 
 <style>
@@ -243,20 +255,12 @@ $total_users = count( $users );
     #wpbody-content { padding-bottom: 0 !important; }
     .elite-admin-wrap { font-family: 'Outfit', sans-serif !important; }
     .elite-admin-wrap h1, .elite-admin-wrap h3 { font-family: 'Playfair Display', serif !important; }
-    .glass { background: rgba(25, 25, 25, 0.4); backdrop-filter: blur(25px); }
+    .glass { background: rgba(15, 15, 15, 0.4); backdrop-filter: blur(25px); }
     
-    /* Custom Scrollbar */
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 3px; height: 3px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 20px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
-    
-    .elite-admin-wrap table { min-width: 900px; }
-    
-    input::placeholder { color: #222 !important; }
-    
-    /* Buttons Hover Effects */
-    .elite-admin-wrap button { cursor: pointer; }
 </style>
 
 <script>
@@ -279,32 +283,6 @@ $total_users = count( $users );
                 alert(data.data || 'Erro fatal na comunicação.');
                 btn.innerHTML = 'Tentar Novamente';
                 btn.disabled = false;
-            }
-        });
-    }
-
-    function changeAccessState(userId, newState, btn) {
-        if (btn.classList.contains('active')) return;
-        
-        // Show immediate loading on the row
-        const row = document.getElementById('user-row-' + userId);
-        row.style.opacity = '0.5';
-        row.style.pointerEvents = 'none';
-
-        const formData = new FormData();
-        formData.append('action', 'lms_set_manual_status');
-        formData.append('user_id', userId);
-        formData.append('new_status', newState);
-
-        fetch(ajax_url, { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.data || 'Erro de permissão.');
-                row.style.opacity = '1';
-                row.style.pointerEvents = 'auto';
             }
         });
     }
