@@ -33,6 +33,7 @@ class Expressive_Core {
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-auth.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-external-api.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-woo-audit.php';
+		require_once EXPRESSIVE_CORE_PATH . 'admin/class-expressive-admin-sortable.php';
 	}
 
 	private function define_admin_hooks() {
@@ -44,6 +45,7 @@ class Expressive_Core {
 		$settings  = new Expressive_Admin_Settings();
 		$cert      = new Expressive_Certificate();
 		$woo_audit = new Expressive_Woo_Audit();
+		$sortable  = new Expressive_Admin_Sortable();
 
 		$woo_audit->register_hooks();
 

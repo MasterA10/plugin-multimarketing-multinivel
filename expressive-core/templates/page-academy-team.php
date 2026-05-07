@@ -11,7 +11,9 @@ show_admin_bar(false);
 $args = array(
     'post_type'      => 'academy_member',
     'posts_per_page' => -1,
-    'status'         => 'publish'
+    'status'         => 'publish',
+    'orderby'        => 'menu_order',
+    'order'          => 'ASC'
 );
 $query = new WP_Query($args);
 $members_by_tier = array(

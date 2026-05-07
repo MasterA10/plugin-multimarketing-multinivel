@@ -70,7 +70,7 @@ class Expressive_CPT {
 			),
 			'public'      => true,
 			'has_archive' => false,
-			'supports'    => array( 'title', 'editor', 'thumbnail' ), // Name, description, photo
+			'supports'    => array( 'title', 'editor', 'thumbnail', 'page-attributes' ), // Name, description, photo, order
 			'menu_icon'   => 'dashicons-groups',
 			'show_in_rest' => true,
 			'show_ui'               => true,
