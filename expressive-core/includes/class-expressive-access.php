@@ -21,7 +21,33 @@ class Expressive_Access {
 		if ( $manual_status === 'blocked' ) return false;
 		if ( $manual_status === 'unblocked' ) return true;
 
-		// --- 3. NOVA VERDADE: TABELA LOCAL DE ACESSO ---
+		// --- 3. NOVA VERDADE: USER META SINCRONIZADO ---
+		// O Dashboard usa esses metas, então o motor de acesso deve ser soberano neles também.
+		$api_status = get_user_meta( $user_id, '_lms_elite_api_status', true );
+		$api_expiry = get_user_meta( $user_id, '_lms_elite_api_expiry', true );
+
+		if ( $api_status === 'active' ) {
+			$fallback_days = get_option( 'lms_hard_fallback_days', 30 );
+			$expires = strtotime( $api_expiry . ' 23:59:59' );
+			$hard_limit = intval( $fallback_days ) * DAY_IN_SECONDS;
+			
+			if ( $expires && ( $expires + $hard_limit ) < time() ) {
+				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO (Meta): Status 'active' mas expiração (" . $api_expiry . ") excedeu limite hard.", array( 'user_id' => $user_id ) );
+			} else {
+				Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO (Meta): Status 'active'", array( 'user_id' => $user_id ) );
+				return true;
+			}
+		} elseif ( $api_status === 'grace_period' ) {
+			// Note: We don't have grace_ends_at in meta, so we'll check the table for more detail if needed.
+		} elseif ( !empty($api_status) && $api_status !== 'active' ) {
+			// Se o status for inativo/cancelado no meta, e a data de expiração passou, bloqueia.
+			if ( $api_expiry && strtotime($api_expiry . ' 23:59:59') < time() ) {
+				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO (Meta): Status '$api_status' e data expirada.", array( 'user_id' => $user_id ) );
+				return false;
+			}
+		}
+
+		// --- 4. TABELA LOCAL DE ACESSO (Fallback Detalhado) ---
 		global $wpdb;
 		$user = get_userdata( $user_id );
 		$table = $wpdb->prefix . 'elite_subscription_access';
@@ -44,16 +70,20 @@ class Expressive_Access {
 			}
 
 			if ( $local->status === 'grace_period' ) {
-				$grace_days = get_option( 'lms_grace_period_days', 7 );
 				$grace_ends = strtotime( $local->grace_ends_at . ' 23:59:59' );
-				
-				// Optional: Extra tolerance based on settings if needed, but usually grace_ends_at is already calculated by the API.
-				// However, if we want to force a maximum period from expiry:
 				if ( $grace_ends && $grace_ends >= time() ) {
 					Expressive_Logger::debug( 'ACCESS', "Acesso LIBERADO: Grace Period ativo até " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
 					return true;
 				}
 				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Grace Period expirado em " . $local->grace_ends_at, array( 'user_id' => $user_id ) );
+				return false;
+			}
+
+			// --- NOVO: RIGOR DE DATA DE EXPIRAÇÃO GERAL ---
+			// Se o status for qualquer outro (inactive, etc) e a data de expiração já passou, BLOQUEIA.
+			$expires_at = strtotime( $local->access_expires_at . ' 23:59:59' );
+			if ( $expires_at && $expires_at < time() ) {
+				Expressive_Logger::warning( 'ACCESS', "Acesso BLOQUEADO: Data de expiração (" . $local->access_expires_at . ") vencida.", array( 'user_id' => $user_id ) );
 				return false;
 			}
 
@@ -97,11 +127,8 @@ class Expressive_Access {
 			return wcs_user_has_subscription( $user_id, '', 'active' );
 		}
 
-		// 5.2 Native Fallback: Is 'active' locally?
-		$local_status = get_user_meta( $user_id, '_lms_subscription_status', true );
-		if ( $local_status === 'active' ) {
-			return true;
-		}
+		// 5.2 Native Fallback: We no longer trust old legacy meta.
+		// Only WC Subscriptions (if active) are allowed as secondary fallback.
 
 		return false;
 	}
