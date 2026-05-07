@@ -74,6 +74,7 @@ class Expressive_Core {
 
 		// Template Overrides
 		add_filter( 'template_include', array( $this, 'template_loader' ) );
+		add_action( 'template_redirect', array( $this, 'cancellation_page_override' ), 5 );
 		
 		// General Init
 		add_action( 'init', array( $this, 'init' ), 20 );
@@ -192,10 +193,6 @@ class Expressive_Core {
 			}
 		}
 
-		// Handle Special LMS Pages (Dashboard, Login, Cancellation)
-		if ( strpos( $_SERVER['REQUEST_URI'], 'cancelar-assinatura' ) !== false ) {
-			return EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
-		}
 
 		if ( is_page() ) {
 			$page_type = get_post_meta( get_the_ID(), '_lms_page_type', true );
@@ -450,6 +447,18 @@ class Expressive_Core {
 					include EXPRESSIVE_CORE_PATH . 'templates/parts/referral-button.php';
 				}
 			}
+		}
+	}
+
+	/**
+	 * Force load the cancellation page if URI matches
+	 */
+	public function cancellation_page_override() {
+		$request_uri = untrailingslashit( $_SERVER['REQUEST_URI'] );
+		if ( strpos( $request_uri, 'cancelar-assinatura' ) !== false ) {
+			Expressive_Logger::info( 'TEMPLATE', "Override de cancelamento detectado", array( 'uri' => $_SERVER['REQUEST_URI'] ) );
+			include EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
+			exit;
 		}
 	}
 
