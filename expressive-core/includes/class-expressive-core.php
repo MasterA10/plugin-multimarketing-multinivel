@@ -192,7 +192,11 @@ class Expressive_Core {
 			}
 		}
 
-		// Handle Special LMS Pages (Dashboard, Login)
+		// Handle Special LMS Pages (Dashboard, Login, Cancellation)
+		if ( strpos( $_SERVER['REQUEST_URI'], 'cancelar-assinatura' ) !== false ) {
+			return EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
+		}
+
 		if ( is_page() ) {
 			$page_type = get_post_meta( get_the_ID(), '_lms_page_type', true );
 			// Elite Educator Dashboard
