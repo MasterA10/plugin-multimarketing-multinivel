@@ -73,7 +73,9 @@ class Expressive_Core {
 		$cert->register_hooks();
 
 		// Template Overrides
-		add_filter( 'template_include', array( $this, 'template_loader' ) );
+		add_filter( 'template_include', array( $this, 'template_loader' ), 1 );
+		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
+		add_action( 'init', array( $this, 'register_rewrite_routes' ), 5 );
 		
 		// General Init
 		add_action( 'init', array( $this, 'init' ), 20 );
@@ -148,6 +150,9 @@ class Expressive_Core {
 	}
 
 	public function template_loader( $template ) {
+		$request_uri = untrailingslashit( $_SERVER['REQUEST_URI'] );
+		
+
 		if ( is_singular( 'elite_links' ) ) {
 			return EXPRESSIVE_CORE_PATH . 'templates/page-link-bio.php';
 		}
@@ -192,7 +197,7 @@ class Expressive_Core {
 			}
 		}
 
-		// Handle Special LMS Pages (Dashboard, Login)
+
 		if ( is_page() ) {
 			$page_type = get_post_meta( get_the_ID(), '_lms_page_type', true );
 			// Elite Educator Dashboard
@@ -257,30 +262,42 @@ class Expressive_Core {
 	}
 
 	public function init() {
-		// Flush rules once to fix broken links requested by user
-		if ( get_option( 'lms_needs_flush_v6' ) !== 'no' ) {
+		// Run update tasks if version changed
+		$db_version = get_option( 'expressive_core_db_version', '0.0.0' );
+		if ( version_compare( $db_version, EXPRESSIVE_CORE_VERSION, '<' ) ) {
+			require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-activator.php';
+			Expressive_Activator::activate();
+			update_option( 'expressive_core_db_version', EXPRESSIVE_CORE_VERSION );
 			flush_rewrite_rules();
-			update_option( 'lms_needs_flush_v6', 'no' );
+		}
+
+		// Flush rules once to fix broken links requested by user
+		if ( get_option( 'lms_needs_flush_v7' ) !== 'no' ) {
+			flush_rewrite_rules();
+			update_option( 'lms_needs_flush_v7', 'no' );
 		}
 
 		// --- WP CRON: Sincronização Periódica da API ---
 		add_action( 'lms_api_periodic_sync_task', array( 'Expressive_External_API', 'sync_all_users_status' ) );
+		add_action( 'elite_daily_subscription_cleanup_task', array( new Expressive_Engine(), 'elite_daily_subscription_cleanup' ) );
 
 		$configured_interval = max( 180, intval( get_option( 'lms_api_sync_interval', 3 ) ) * 60 );
 		$next_scheduled = wp_next_scheduled( 'lms_api_periodic_sync_task' );
 
 		if ( ! $next_scheduled ) {
-			// Nenhum evento agendado — cria pela primeira vez
 			wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
 		} else {
-			// Verifica se o intervalo mudou nas configurações
 			$stored_interval = get_option( 'lms_api_cron_interval_seconds', 0 );
 			if ( (int) $stored_interval !== $configured_interval ) {
-				// Intervalo mudou — reagenda com o novo valor
 				wp_clear_scheduled_hook( 'lms_api_periodic_sync_task' );
 				wp_schedule_event( time(), 'lms_custom_sync', 'lms_api_periodic_sync_task' );
 				update_option( 'lms_api_cron_interval_seconds', $configured_interval );
 			}
+		}
+
+		// --- WP CRON: Cleanup Diário de Grace Period ---
+		if ( ! wp_next_scheduled( 'elite_daily_subscription_cleanup_task' ) ) {
+			wp_schedule_event( time(), 'daily', 'elite_daily_subscription_cleanup_task' );
 		}
 	}
 
@@ -444,6 +461,20 @@ class Expressive_Core {
 				}
 			}
 		}
+	}
+
+
+	/**
+	 * Register public virtual pages handled by the plugin.
+	 */
+	public function register_rewrite_routes() {
+	}
+
+	/**
+	 * Allow custom rewrite vars to reach template_redirect.
+	 */
+	public function register_query_vars( $vars ) {
+		return $vars;
 	}
 
 }

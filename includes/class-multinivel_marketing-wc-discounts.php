@@ -4,7 +4,7 @@
  * The WooCommerce discount functionality based on User Meta and Roles.
  *
  * @link       https://dominai.cloud
- * @since      1.0.0
+ * @since      1.0.2
  *
  * @package    Multinivel_marketing
  * @subpackage Multinivel_marketing/includes

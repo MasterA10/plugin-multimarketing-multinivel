@@ -6,7 +6,7 @@
  *
  * @package    Multinivel_Marketing
  * @subpackage Expressive_Core
- * @version    1.0.0
+ * @version    1.0.2
  * @author     Alex Alves
  * @link       https://dominai.cloud
  * @license    GPL v2 or later
@@ -17,7 +17,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EXPRESSIVE_CORE_VERSION', '1.0.0' );
+define( 'EXPRESSIVE_CORE_VERSION', '1.0.2' );
 define( 'EXPRESSIVE_CORE_PATH', plugin_dir_path( __FILE__ ) );
 
 /**

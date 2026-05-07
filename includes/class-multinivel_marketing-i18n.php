@@ -7,7 +7,7 @@
  * so that it is ready for translation.
  *
  * @link       https://dominai.cloud
- * @since      1.0.0
+ * @since      1.0.2
  *
  * @package    Multinivel_marketing
  * @subpackage Multinivel_marketing/includes
@@ -19,7 +19,7 @@
  * Loads and defines the internationalization files for this plugin
  * so that it is ready for translation.
  *
- * @since      1.0.0
+ * @since      1.0.2
  * @package    Multinivel_marketing
  * @subpackage Multinivel_marketing/includes
  * @author     Alex Alves <nasalexalves@gmail.com>
@@ -30,7 +30,7 @@ class Multinivel_marketing_i18n {
 	/**
 	 * Load the plugin text domain for translation.
 	 *
-	 * @since    1.0.0
+	 * @since    1.0.2
 	 */
 	public function load_plugin_textdomain() {
 

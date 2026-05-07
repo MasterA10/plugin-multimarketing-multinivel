@@ -74,11 +74,56 @@ class Expressive_Activator {
 		) $charset_collate;";
 		dbDelta( $sql_bonus );
 
-		// 4. Automatic Page Creation
+		// 4. wp_elite_subscription_access
+		$table_access = $wpdb->prefix . 'elite_subscription_access';
+		$sql_access = "CREATE TABLE $table_access (
+			id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT UNSIGNED NULL,
+			email VARCHAR(190) NOT NULL,
+			asaas_customer_id VARCHAR(100) NULL,
+			asaas_subscription_id VARCHAR(100) NULL,
+			status VARCHAR(50) NOT NULL DEFAULT 'active',
+			plan_name VARCHAR(190) NULL,
+			gateway_status VARCHAR(50) NULL,
+			access_expires_at DATETIME NULL,
+			grace_started_at DATETIME NULL,
+			grace_ends_at DATETIME NULL,
+			cancel_requested_at DATETIME NULL,
+			cancel_reason TEXT NULL,
+			last_sync_at DATETIME NULL,
+			raw_response LONGTEXT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+			UNIQUE KEY email_unique (email),
+			KEY user_id_index (user_id),
+			KEY status_index (status),
+			KEY grace_ends_index (grace_ends_at)
+		) $charset_collate;";
+		dbDelta( $sql_access );
+
+		// 5. wp_elite_subscription_events
+		$table_events = $wpdb->prefix . 'elite_subscription_events';
+		$sql_events = "CREATE TABLE $table_events (
+			id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+			email VARCHAR(190) NOT NULL,
+			action VARCHAR(100) NOT NULL,
+			status_before VARCHAR(50) NULL,
+			status_after VARCHAR(50) NULL,
+			reason TEXT NULL,
+			request_payload LONGTEXT NULL,
+			response_payload LONGTEXT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			KEY email_index (email),
+			KEY action_index (action)
+		) $charset_collate;";
+		dbDelta( $sql_events );
+
+		// 6. Automatic Page Creation
 		self::create_static_pages();
 	}
 
-	private static function create_static_pages() {
+	public static function create_static_pages() {
+		$changed = false;
 		$pages = array(
 			'login' => array(
 				'title'   => 'Login Aluno',
@@ -97,8 +142,15 @@ class Expressive_Activator {
 			),
 		);
 
+		// Cleanup: Remove obsolete cancellation page if it exists
+		$old_page = get_page_by_path( 'cancelar-assinatura' );
+		if ( $old_page ) {
+			wp_delete_post( $old_page->ID, true );
+			$changed = true;
+		}
+
 		foreach ( $pages as $slug => $data ) {
-			$page_check = get_page_by_path( $slug );
+			$page_check = self::get_static_page_by_slug( $slug );
 			if ( ! isset( $page_check->ID ) ) {
 				$page_id = wp_insert_post( array(
 					'post_title'   => $data['title'],
@@ -107,14 +159,53 @@ class Expressive_Activator {
 					'post_type'    => 'page',
 					'post_name'    => $slug,
 				) );
-				if ( ! is_wp_error( $page_id ) ) {
+				if ( ! is_wp_error( $page_id ) && $page_id ) {
 					update_post_meta( $page_id, '_lms_page_type', $slug );
+					$changed = true;
 				}
 			} else {
+				$page_id = (int) $page_check->ID;
+				$updates = array( 'ID' => $page_id );
+
+				if ( $page_check->post_status !== 'publish' ) {
+					$updates['post_status'] = 'publish';
+				}
+
+				if ( $page_check->post_name !== $slug ) {
+					$updates['post_name'] = $slug;
+				}
+
+				if ( count( $updates ) > 1 ) {
+					wp_update_post( $updates );
+					$changed = true;
+				}
+
 				// Ensure metadata exists for legacy pages
-				update_post_meta( $page_check->ID, '_lms_page_type', $slug );
+				if ( get_post_meta( $page_id, '_lms_page_type', true ) !== $slug ) {
+					update_post_meta( $page_id, '_lms_page_type', $slug );
+					$changed = true;
+				}
 			}
 		}
+
+		return $changed;
+	}
+
+	private static function get_static_page_by_slug( $slug ) {
+		$page = get_page_by_path( $slug, OBJECT, 'page' );
+		if ( isset( $page->ID ) ) {
+			return $page;
+		}
+
+		$pages = get_posts( array(
+			'name'           => $slug,
+			'post_type'      => 'page',
+			'post_status'    => array( 'publish', 'private', 'draft', 'pending', 'future', 'trash' ),
+			'posts_per_page' => 1,
+			'no_found_rows'  => true,
+		) );
+
+		return ! empty( $pages ) ? $pages[0] : null;
 	}
 
 }

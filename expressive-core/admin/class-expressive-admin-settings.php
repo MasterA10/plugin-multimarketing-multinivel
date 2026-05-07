@@ -108,6 +108,8 @@ class Expressive_Admin_Settings {
 			array( $this, 'render_admin_hub' )
 		);
 
+
+
 		add_submenu_page(
 			'expressive-lms',
 			'Logs de Debug',
@@ -217,6 +219,7 @@ class Expressive_Admin_Settings {
 				case 'elite-logs':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/view-logs.php';
 					break;
+
 				case 'elite-academy':
 					$template = EXPRESSIVE_CORE_PATH . 'admin/templates/manage-academy.php';
 					break;

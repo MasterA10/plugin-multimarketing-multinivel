@@ -402,6 +402,73 @@ class Expressive_Engine {
 	}
 
 	/**
+	 * Parse product ID options used by discount rules.
+	 */
+	private function parse_discount_product_ids( $option_name ) {
+		$raw_value = get_option( $option_name, '' );
+		if ( is_array( $raw_value ) ) {
+			$raw_value = implode( ',', $raw_value );
+		}
+
+		preg_match_all( '/\d+/', (string) $raw_value, $matches );
+
+		if ( empty( $matches[0] ) ) {
+			return array();
+		}
+
+		return array_values( array_unique( array_map( 'intval', $matches[0] ) ) );
+	}
+
+	/**
+	 * Match cart items against parent products and variations.
+	 */
+	private function cart_item_matches_product_ids( $cart_item, $product_ids ) {
+		if ( empty( $product_ids ) ) {
+			return false;
+		}
+
+		$cart_product_ids = array();
+
+		if ( ! empty( $cart_item['product_id'] ) ) {
+			$cart_product_ids[] = (int) $cart_item['product_id'];
+		}
+
+		if ( ! empty( $cart_item['variation_id'] ) ) {
+			$cart_product_ids[] = (int) $cart_item['variation_id'];
+		}
+
+		if ( isset( $cart_item['data'] ) && is_a( $cart_item['data'], 'WC_Product' ) ) {
+			$product = $cart_item['data'];
+			$cart_product_ids[] = (int) $product->get_id();
+
+			if ( method_exists( $product, 'get_parent_id' ) && $product->get_parent_id() ) {
+				$cart_product_ids[] = (int) $product->get_parent_id();
+			}
+		}
+
+		$cart_product_ids = array_unique( array_filter( $cart_product_ids ) );
+
+		return ! empty( array_intersect( $cart_product_ids, $product_ids ) );
+	}
+
+	/**
+	 * Remove previous negative fee discounts while preserving normal fees.
+	 */
+	private function remove_negative_cart_fees( $cart ) {
+		$current_fees = $cart->get_fees();
+		if ( empty( $current_fees ) ) {
+			return;
+		}
+
+		$cart->fees_api()->remove_all_fees();
+		foreach ( $current_fees as $fee ) {
+			if ( $fee->amount >= 0 ) {
+				$cart->add_fee( $fee->name, $fee->amount, $fee->taxable, $fee->tax_class );
+			}
+		}
+	}
+
+	/**
 	 * Apply role-based discounts on WooCommerce checkout.
 	 */
 	public function apply_lms_discounts( $cart ) {
@@ -484,11 +551,11 @@ class Expressive_Engine {
 
 		// 4. Apply to cart
 		if ( $discount_percent > 0 ) {
-			$excluded_ids_raw = get_option( 'lms_excluded_discount_products', '' );
-			$excluded_ids = array_filter( array_map( 'intval', explode( ',', $excluded_ids_raw ) ) );
-			
-			$capped_ids_raw = get_option( 'lms_capped_discount_products', '' );
-			$capped_ids = array_filter( array_map( 'intval', explode( ',', $capped_ids_raw ) ) );
+			$excluded_ids = $this->parse_discount_product_ids( 'lms_excluded_discount_products' );
+			$capped_ids = $this->parse_discount_product_ids( 'lms_capped_discount_products' );
+
+			// TRAVA DE RESILIÊNCIA: Limpa taxas negativas anteriores para garantir o desconto exclusivo.
+			$this->remove_negative_cart_fees( $cart );
 
 			$total_discount_amount = 0;
 			$total_subtotal = $cart->get_subtotal();
@@ -496,18 +563,16 @@ class Expressive_Engine {
 
 			// Calculate discount item by item
 			foreach ( $cart->get_cart() as $cart_item ) {
-				$product_id = $cart_item['product_id'];
-				
 				// Skip excluded products
-				if ( in_array( $product_id, $excluded_ids ) ) {
+				if ( $this->cart_item_matches_product_ids( $cart_item, $excluded_ids ) ) {
 					continue;
 				}
 
-				$item_price = $cart_item['line_total'];
+				$item_price = isset( $cart_item['line_total'] ) ? (float) $cart_item['line_total'] : 0;
 				$item_discount_percent = $discount_percent;
 
 				// Apply 30% cap if product is in the capped list and user is Educator (40%)
-				if ( $detected_category === 'educadora' && in_array( $product_id, $capped_ids ) ) {
+				if ( $detected_category === 'educadora' && $this->cart_item_matches_product_ids( $cart_item, $capped_ids ) ) {
 					$item_discount_percent = 0.30;
 					$has_capped_items = true;
 				}
@@ -521,17 +586,6 @@ class Expressive_Engine {
 				// Adjust label if there are capped items
 				if ( $has_capped_items && $detected_category === 'educadora' ) {
 					$label = 'Desconto Elite: Educadora CCP Diamante (Misto 30%/40%)';
-				}
-
-				// TRAVA DE RESILIÊNCIA: Limpa taxas negativas anteriores (adicionadas por outros plugins ou hooks legados) para garantir o desconto exclusivo.
-				$current_fees = $cart->get_fees();
-				if ( ! empty( $current_fees ) ) {
-					$cart->fees_api()->remove_all_fees();
-					foreach ( $current_fees as $fee ) {
-						if ( $fee->amount >= 0 ) {
-							$cart->add_fee( $fee->name, $fee->amount, $fee->taxable, $fee->tax_class );
-						}
-					}
 				}
 
 				$cart->add_fee( $label, $discount_amount );
@@ -818,6 +872,40 @@ class Expressive_Engine {
 			wp_send_json_success( 'Sua solicitação de cancelamento foi processada com sucesso.' );
 		} else {
 			wp_send_json_error( Expressive_External_API::$last_error ?: 'Não foi possível processar o cancelamento via API.' );
+		}
+	}
+
+	/**
+	 * Daily cleanup of expired grace periods.
+	 */
+	public function elite_daily_subscription_cleanup() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'elite_subscription_access';
+		
+		$expired = $wpdb->get_results( "SELECT * FROM $table WHERE status = 'grace_period' AND grace_ends_at < NOW()" );
+
+		foreach ( $expired as $row ) {
+			$wpdb->update( $table, 
+				array( 'status' => 'cancelled', 'last_sync_at' => current_time('mysql') ), 
+				array( 'id' => $row->id ) 
+			);
+			
+			Expressive_Logger::info( 'CLEANUP', "Grace Period encerrado automaticamente", array( 'email' => $row->email ) );
+			
+			Expressive_External_API::record_access_event( 
+				$row->email, 
+				'cleanup_expired_grace', 
+				'grace_period', 
+				'cancelled', 
+				'Grace Period expirado via rotina diária.', 
+				'SYSTEM_CRON', 
+				'SUCCESS' 
+			);
+
+			// Sync to user meta
+			if ( $row->user_id ) {
+				update_user_meta( $row->user_id, '_lms_elite_api_status', 'inactive' );
+			}
 		}
 	}
 

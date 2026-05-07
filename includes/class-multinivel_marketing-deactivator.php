@@ -4,7 +4,7 @@
  * Fired during plugin deactivation
  *
  * @link       https://dominai.cloud
- * @since      1.0.0
+ * @since      1.0.2
  *
  * @package    Multinivel_marketing
  * @subpackage Multinivel_marketing/includes
@@ -15,7 +15,7 @@
  *
  * This class defines all code necessary to run during the plugin's deactivation.
  *
- * @since      1.0.0
+ * @since      1.0.2
  * @package    Multinivel_marketing
  * @subpackage Multinivel_marketing/includes
  * @author     Alex Alves <nasalexalves@gmail.com>
@@ -27,7 +27,7 @@ class Multinivel_marketing_Deactivator {
 	 *
 	 * Long Description.
 	 *
-	 * @since    1.0.0
+	 * @since    1.0.2
 	 */
 	public static function deactivate() {
 
