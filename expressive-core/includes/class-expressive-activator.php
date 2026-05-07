@@ -142,6 +142,13 @@ class Expressive_Activator {
 			),
 		);
 
+		// Cleanup: Remove obsolete cancellation page if it exists
+		$old_page = get_page_by_path( 'cancelar-assinatura' );
+		if ( $old_page ) {
+			wp_delete_post( $old_page->ID, true );
+			$changed = true;
+		}
+
 		foreach ( $pages as $slug => $data ) {
 			$page_check = self::get_static_page_by_slug( $slug );
 			if ( ! isset( $page_check->ID ) ) {
