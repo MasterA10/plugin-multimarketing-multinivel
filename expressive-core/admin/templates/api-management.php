@@ -7,6 +7,13 @@ $table_events = $wpdb->prefix . 'elite_subscription_events';
 if ( isset( $_POST['lms_save_api_settings'] ) && check_admin_referer( 'lms_save_api_nonce' ) ) {
     update_option( 'lms_external_api_url', esc_url_raw( $_POST['api_url'] ) );
     update_option( 'lms_external_api_token', sanitize_text_field( $_POST['api_token'] ) );
+
+    if ( isset( $_POST['lms_grace_period_days'] ) ) {
+        update_option( 'lms_grace_period_days', intval( $_POST['lms_grace_period_days'] ) );
+    }
+    if ( isset( $_POST['lms_hard_fallback_days'] ) ) {
+        update_option( 'lms_hard_fallback_days', intval( $_POST['lms_hard_fallback_days'] ) );
+    }
     
     // Clear individual overrides to ensure unified endpoint is used
     delete_option( 'lms_external_api_url_status' );
@@ -291,6 +298,34 @@ $events = $wpdb->get_results( "SELECT * FROM $table_events ORDER BY created_at D
                     </div>
                     <?php endforeach; ?>
                 </div>
+            </div>
+
+            <!-- Global Security Settings -->
+            <div class="glass p-8 rounded-[40px] border border-white/5 relative overflow-hidden bg-white/[0.01]">
+                <h3 class="text-xl font-bold font-serif italic text-white flex items-center gap-3 mb-6">
+                    <span class="w-1.5 h-6 bg-gold-500 rounded-full" style="background-color: #D4AF37;"></span>
+                    Segurança de Acesso
+                </h3>
+                
+                <form method="post" action="" class="space-y-6">
+                    <?php wp_nonce_field( 'lms_save_api_nonce' ); ?>
+                    
+                    <div class="space-y-2">
+                        <label for="lms_grace_period_days" class="text-[10px] font-bold uppercase tracking-widest text-gold-400">Dias de Carência (Grace Period)</label>
+                        <?php $grace_days = get_option( 'lms_grace_period_days', 7 ); ?>
+                        <input name="lms_grace_period_days" type="number" id="lms_grace_period_days" value="<?php echo esc_attr( $grace_days ); ?>" min="0" class="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs focus:border-gold-500 outline-none transition-all text-white">
+                        <p class="text-[8px] text-zinc-500 italic mt-1">Tolerância para o status <strong>grace_period</strong>.</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="lms_hard_fallback_days" class="text-[10px] font-bold uppercase tracking-widest text-gold-400">Limite Hard (Segurança)</label>
+                        <?php $fallback_days = get_option( 'lms_hard_fallback_days', 30 ); ?>
+                        <input name="lms_hard_fallback_days" type="number" id="lms_hard_fallback_days" value="<?php echo esc_attr( $fallback_days ); ?>" min="0" class="w-full bg-black border border-white/10 rounded-2xl px-5 py-4 text-xs focus:border-gold-500 outline-none transition-all text-white">
+                        <p class="text-[8px] text-zinc-500 italic mt-1">Tolerância para status <strong>active</strong> expirado.</p>
+                    </div>
+
+                    <button type="submit" name="lms_save_api_settings" class="w-full py-4 bg-gold-500 hover:bg-white text-black font-black uppercase tracking-widest text-[9px] rounded-2xl transition-all shadow-xl shadow-gold-500/10">Salvar Segurança</button>
+                </form>
             </div>
         </div>
     </div>

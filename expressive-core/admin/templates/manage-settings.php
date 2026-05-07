@@ -47,13 +47,6 @@ if ( isset( $_POST['lms_save_settings'] ) && check_admin_referer( 'lms_save_cycl
     $enable_fallback = isset( $_POST['enable_role_fallback'] ) ? 'yes' : 'no';
     update_option( 'lms_enable_role_fallback', $enable_fallback );
 
-    if ( isset( $_POST['lms_grace_period_days'] ) ) {
-        update_option( 'lms_grace_period_days', intval( $_POST['lms_grace_period_days'] ) );
-    }
-    if ( isset( $_POST['lms_hard_fallback_days'] ) ) {
-        update_option( 'lms_hard_fallback_days', intval( $_POST['lms_hard_fallback_days'] ) );
-    }
-
     echo '<div class="updated notice is-dismissible"><p>Configurações salvas com sucesso!</p></div>';
 }
 
@@ -202,31 +195,11 @@ $enable_fallback = get_option( 'lms_enable_role_fallback', 'yes' );
                     </div>
                 </div>
 
-                <!-- NEW: Access Control & Security -->
-                <div class="space-y-6 pt-10 border-t border-white/10">
-                    <h3 class="text-lg font-bold font-serif italic text-gold-500 mb-4 flex items-center gap-2">
-                        <span class="dashicons dashicons-shield"></span>
-                        Controle de Acesso & Segurança
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="space-y-2">
-                            <label for="lms_grace_period_days" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Dias de Carência (Grace Period)</label>
-                            <?php $grace_days = get_option( 'lms_grace_period_days', 7 ); ?>
-                            <input name="lms_grace_period_days" type="number" id="lms_grace_period_days" value="<?php echo esc_attr( $grace_days ); ?>" min="0" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
-                            <p class="text-[9px] text-gray-500 italic mt-1">Tolerância para o status <strong>grace_period</strong> da API.</p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="lms_hard_fallback_days" class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Limite de Segurança (Hard Fallback)</label>
-                            <?php $fallback_days = get_option( 'lms_hard_fallback_days', 30 ); ?>
-                            <input name="lms_hard_fallback_days" type="number" id="lms_hard_fallback_days" value="<?php echo esc_attr( $fallback_days ); ?>" min="0" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-gold-500/50 transition-all outline-none">
-                            <p class="text-[9px] text-gray-500 italic mt-1">Tolerância máxima para status <strong>active</strong> com data de expiração antiga.</p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="pt-10">
+                    <button type="submit" name="lms_save_settings" class="px-10 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-gold-500/20 transform hover:scale-[1.02]" style="background: linear-gradient(to right, #D4AF37, #F2D480) !important; color: #000 !important; border: none;">
+                        Salvar Configurações
+                    </button>
+                </div>
                     <button type="submit" name="lms_save_settings" class="px-10 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-gold-500/20 transform hover:scale-[1.02]" style="background: linear-gradient(to right, #D4AF37, #F2D480) !important; color: #000 !important; border: none;">
                         Salvar Configurações
                     </button>
