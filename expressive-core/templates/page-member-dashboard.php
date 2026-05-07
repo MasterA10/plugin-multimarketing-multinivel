@@ -738,10 +738,23 @@ $visibility_meta_query = array(
                             <span class="text-[10px] text-zinc-500 uppercase tracking-[0.3em] font-bold mb-6 block">Status do Plano</span>
                             
                             <?php 
+                            $manual_status = get_user_meta($user_id, '_lms_elite_manual_status', true) ?: 'none';
                             $api_status = get_user_meta($user_id, '_lms_elite_api_status', true);
                             $plan_name = get_user_meta($user_id, '_lms_elite_api_plan', true) ?: 'Plano Elite';
                             $expiry_date = get_user_meta($user_id, '_lms_elite_api_expiry', true);
-                            $is_cancelled = ($api_status === 'inactive' && $expiry_date && strtotime($expiry_date) >= time());
+                            
+                            $is_lifetime = ($manual_status === 'unblocked');
+                            $is_manually_blocked = ($manual_status === 'blocked');
+                            
+                            // Adjust labels based on manual status
+                            if ($is_lifetime) {
+                                $plan_name = 'Acesso Vitalício Elite';
+                                $api_status = 'active';
+                            } elseif ($is_manually_blocked) {
+                                $api_status = 'inactive';
+                            }
+
+                            $is_cancelled = ($api_status === 'inactive' && $expiry_date && strtotime($expiry_date) >= time() && !$is_manually_blocked);
                             $is_active_real = ($api_status === 'active');
                             ?>
 
@@ -752,7 +765,13 @@ $visibility_meta_query = array(
                                 <div>
                                     <h4 class="text-2xl font-bold text-white"><?php echo esc_html($plan_name); ?></h4>
                                     <div class="flex items-center gap-2 mt-1">
-                                        <?php if ($is_active_real): ?>
+                                        <?php if ($is_lifetime): ?>
+                                            <span class="w-2 h-2 rounded-full bg-gold-500 animate-pulse"></span>
+                                            <span class="text-[10px] text-gold-500 font-bold uppercase tracking-widest">Passe Vitalício Concedido</span>
+                                        <?php elseif ($is_manually_blocked): ?>
+                                            <span class="w-2 h-2 rounded-full bg-red-600"></span>
+                                            <span class="text-[10px] text-red-600 font-bold uppercase tracking-widest">Acesso Suspenso pelo Administrador</span>
+                                        <?php elseif ($is_active_real): ?>
                                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                             <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Ativa / Recorrência Ligada</span>
                                         <?php elseif ($is_cancelled): ?>
@@ -769,7 +788,11 @@ $visibility_meta_query = array(
                             <div class="space-y-4 pt-6 border-t border-white/5">
                                 <div class="flex justify-between items-center text-sm">
                                     <span class="text-zinc-500">Próxima Renovação</span>
-                                    <span class="text-white font-medium"><?php echo $expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---'; ?></span>
+                                    <span class="text-white font-medium"><?php 
+                                        if ($is_lifetime) echo 'Nunca / Vitalício';
+                                        elseif ($is_manually_blocked) echo 'Acesso Suspenso';
+                                        else echo ($expiry_date ? date('d/m/Y', strtotime($expiry_date)) : '---'); 
+                                    ?></span>
                                 </div>
                                 <div class="flex justify-between items-center text-sm">
                                     <span class="text-zinc-500">Método de Pagamento</span>
@@ -790,7 +813,7 @@ $visibility_meta_query = array(
                         <div class="flex flex-col gap-3">
                             <a href="https://wa.me/seunumerowhatsapp" target="_blank" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-center transition-all">Falar com Suporte</a>
                             
-                            <?php if ($is_active_real): ?>
+                            <?php if ($is_active_real && !$is_lifetime && !$is_manually_blocked): ?>
                                 <div id="sub-actions-default">
                                     <button onclick="toggleCancellationForm(true)" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all cursor-pointer bg-transparent border-none">Desejo Cancelar minha Assinatura</button>
                                 </div>
