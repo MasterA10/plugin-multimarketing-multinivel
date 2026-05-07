@@ -73,10 +73,10 @@ class Expressive_Core {
 		$cert->register_hooks();
 
 		// Template Overrides
-		add_filter( 'template_include', array( $this, 'template_loader' ) );
+		add_filter( 'template_include', array( $this, 'template_loader' ), 1 );
 		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		add_action( 'init', array( $this, 'register_rewrite_routes' ), 5 );
-		add_action( 'template_redirect', array( $this, 'cancellation_page_override' ), 5 );
+		add_action( 'template_redirect', array( $this, 'cancellation_page_override' ), 1 );
 		
 		// General Init
 		add_action( 'init', array( $this, 'init' ), 20 );
@@ -151,6 +151,16 @@ class Expressive_Core {
 	}
 
 	public function template_loader( $template ) {
+		$request_uri = untrailingslashit( $_SERVER['REQUEST_URI'] );
+		
+		// Force cancellation page even if 404
+		if ( strpos( $request_uri, 'cancelar-assinatura' ) !== false ) {
+			status_header( 200 );
+			global $wp_query;
+			if ( $wp_query ) $wp_query->is_404 = false;
+			return EXPRESSIVE_CORE_PATH . 'templates/page-cancelar-assinatura.php';
+		}
+
 		if ( is_singular( 'elite_links' ) ) {
 			return EXPRESSIVE_CORE_PATH . 'templates/page-link-bio.php';
 		}
