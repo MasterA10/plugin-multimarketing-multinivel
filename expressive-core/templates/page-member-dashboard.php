@@ -791,8 +791,23 @@ $visibility_meta_query = array(
                             <a href="https://wa.me/seunumerowhatsapp" target="_blank" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-center transition-all">Falar com Suporte</a>
                             
                             <?php if ($is_active_real): ?>
-                                <a href="<?php echo home_url('/cancelar-assinatura/'); ?>" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all">Desejo Cancelar minha Assinatura</a>
+                                <button onclick="requestCancellation()" class="w-full py-4 text-zinc-600 hover:text-red-500 text-[9px] font-bold uppercase tracking-[0.2em] text-center transition-all cursor-pointer">Desejo Cancelar minha Assinatura</button>
                             <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cancellation Modal (Internal) -->
+                <div id="cancel-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+                    <div class="glass max-w-md w-full p-10 rounded-[40px] border border-white/10 text-center relative animate-modal-in">
+                        <h3 class="text-2xl font-serif italic text-white mb-4">Confirmar Cancelamento</h3>
+                        <p class="text-sm text-zinc-400 mb-8 leading-relaxed">Sentiremos sua falta! Ao cancelar, você manterá acesso até o fim do ciclo atual. Conte-nos o motivo para melhorarmos:</p>
+                        
+                        <textarea id="cancel-reason" placeholder="Opcional: Por que deseja sair?" class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-sm mb-6 focus:border-gold-500 outline-none h-24 resize-none"></textarea>
+                        
+                        <div class="flex flex-col gap-3">
+                            <button id="confirm-cancel-btn" onclick="executeCancellation()" class="w-full py-4 bg-red-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all">Confirmar Cancelamento</button>
+                            <button onclick="closeCancelModal()" class="w-full py-4 bg-white/5 text-zinc-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:text-white transition-all">Manter Assinatura</button>
                         </div>
                     </div>
                 </div>
@@ -1347,6 +1362,56 @@ $visibility_meta_query = array(
                     document.body.style.overflow = '';
                 }, 300);
             }
+        }
+
+        // --- Cancellation Logic ---
+        function requestCancellation() {
+            const modal = document.getElementById('cancel-modal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        function closeCancelModal() {
+            const modal = document.getElementById('cancel-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+
+        function executeCancellation() {
+            const btn = document.getElementById('confirm-cancel-btn');
+            const reason = document.getElementById('cancel-reason').value;
+            
+            if (btn.disabled) return;
+            
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('action', 'lms_cancel_subscription_request');
+            formData.append('nonce', lms_vars.nonce);
+            formData.append('reason', reason);
+
+            fetch(lms_vars.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.data);
+                    window.location.reload();
+                } else {
+                    alert(data.data || 'Erro ao processar cancelamento.');
+                    btn.innerHTML = 'Confirmar Cancelamento';
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error('Cancellation Error:', err);
+                alert('Erro de conexão.');
+                btn.innerHTML = 'Confirmar Cancelamento';
+                btn.disabled = false;
+            });
         }
     </script>
 

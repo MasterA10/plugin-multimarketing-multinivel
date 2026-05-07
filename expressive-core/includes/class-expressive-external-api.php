@@ -178,7 +178,7 @@ class Expressive_External_API {
      */
     public static function cancel_subscription( $user_id, $reason = '' ) {
         self::$last_error = '';
-        $api_url   = get_option( 'lms_external_api_url_cancel' );
+        $api_url   = get_option( 'lms_external_api_url_cancel' ) ?: get_option( 'lms_external_api_url' );
         $api_token = get_option( 'lms_external_api_token' );
 
         if ( ! $api_url ) {
