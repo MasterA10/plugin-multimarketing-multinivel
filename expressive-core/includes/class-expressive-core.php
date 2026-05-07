@@ -33,7 +33,6 @@ class Expressive_Core {
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-auth.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-external-api.php';
 		require_once EXPRESSIVE_CORE_PATH . 'includes/class-expressive-woo-audit.php';
-		require_once EXPRESSIVE_CORE_PATH . 'admin/class-expressive-admin-sortable.php';
 	}
 
 	private function define_admin_hooks() {
@@ -45,7 +44,6 @@ class Expressive_Core {
 		$settings  = new Expressive_Admin_Settings();
 		$cert      = new Expressive_Certificate();
 		$woo_audit = new Expressive_Woo_Audit();
-		$sortable  = new Expressive_Admin_Sortable();
 
 		$woo_audit->register_hooks();
 
@@ -67,6 +65,7 @@ class Expressive_Core {
 		add_action( 'wp_ajax_lms_update_module_and_lesson_order', array( $settings, 'ajax_update_module_and_lesson_order' ) );
 
 		add_action( 'wp_ajax_lms_update_user_manual_status', array( $settings, 'ajax_update_user_manual_status' ) );
+		add_action( 'wp_ajax_lms_update_academy_order', array( $settings, 'update_academy_order' ) );
 		
 		// Middleware & Engine
 		add_action( 'template_redirect', array( $access, 'protect_content_middleware' ) );
@@ -145,7 +144,7 @@ class Expressive_Core {
 			wp_enqueue_style( 'expressive-lms-style', plugin_dir_url( __FILE__ ) . '../public/css/lms-style.css', array(), $this->version );
 
 			// LMS Engine
-			wp_enqueue_script( 'expressive-lms-engine', plugin_dir_url( __FILE__ ) . '../public/js/lms-engine.js', array( 'jquery' ), $this->version, true );
+			wp_enqueue_script( 'expressive-lms-engine', plugin_dir_url( __FILE__ ) . '../public/js/lms-engine.js', array( 'jquery', 'jquery-ui-sortable' ), $this->version, true );
 			wp_localize_script( 'expressive-lms-engine', 'lms_vars', array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce'    => wp_create_nonce( 'lms_engine_nonce' ),

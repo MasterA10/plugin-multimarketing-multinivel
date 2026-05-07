@@ -769,4 +769,25 @@ class Expressive_Admin_Settings {
 		wp_send_json_success( 'Status atualizado com sucesso.' );
 	}
 
+	public function update_academy_order() {
+		check_ajax_referer( 'lms_save_elite_content_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Acesso negado.' );
+		}
+
+		$order = isset( $_POST['order'] ) ? $_POST['order'] : array();
+
+		if ( ! empty( $order ) ) {
+			foreach ( $order as $index => $post_id ) {
+				wp_update_post( array(
+					'ID'         => intval( $post_id ),
+					'menu_order' => $index
+				) );
+			}
+			wp_send_json_success( 'Ordem atualizada com sucesso!' );
+		}
+
+		wp_send_json_error( 'Nenhuma ordem recebida.' );
+	}
 }

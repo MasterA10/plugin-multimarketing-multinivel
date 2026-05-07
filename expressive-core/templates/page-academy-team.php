@@ -7,18 +7,18 @@
 // Force immersion
 show_admin_bar(false);
 
-// Fetch all members
+// Fetch all members ordered by menu_order
 $args = array(
     'post_type'      => 'academy_member',
     'posts_per_page' => -1,
-    'status'         => 'publish',
+    'post_status'    => 'publish',
     'orderby'        => 'menu_order',
     'order'          => 'ASC'
 );
 $query = new WP_Query($args);
 $members_by_tier = array(
     'lideranca'    => array(),
-    'grand_master' => array(),
+    'grandmaster'  => array(),
     'convidado'    => array()
 );
 
@@ -27,8 +27,6 @@ if ($query->have_posts()) {
         $query->the_post();
         $tier = get_post_meta(get_the_ID(), '_academy_member_tier', true) ?: 'convidado';
         
-        if ($tier === 'grandmaster') $tier = 'grand_master';
-
         if (isset($members_by_tier[$tier])) {
             $members_by_tier[$tier][] = array(
                 'name'       => get_the_title(),
@@ -46,7 +44,7 @@ if ($query->have_posts()) {
 // Section Config
 $sections = array(
     'lideranca'    => 'Direção e Liderança',
-    'grand_master' => 'Educadores Grand Master Diamantes',
+    'grandmaster'  => 'Educadores Grand Master Diamantes',
     'convidado'    => 'Educadores Convidados'
 );
 ?>
@@ -400,7 +398,7 @@ $sections = array(
                                 <?php if ($tier_id !== 'lideranca') : ?>
                                     <div class="tier-badge">
                                         <?php 
-                                            if ($tier_id === 'grand_master') echo 'MASTER ELITE';
+                                            if ($tier_id === 'grandmaster') echo 'MASTER ELITE';
                                             else echo 'CONVIDADO';
                                         ?>
                                     </div>
