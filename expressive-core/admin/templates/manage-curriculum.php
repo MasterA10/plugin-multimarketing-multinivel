@@ -46,6 +46,7 @@ foreach($all_course_lessons as $l) {
 }
 
 $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
+$curriculum_url = admin_url('admin.php?page=' . $current_page . '&action=curriculum&id=' . $course_id . '&message=deleted');
 ?>
 
 <div class="elite-admin-wrap bg-[#111] text-white min-h-screen p-8 rounded-xl shadow-2xl mr-4 mt-4 font-sans max-w-5xl animate-fade-in">
@@ -89,6 +90,14 @@ $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
 
         <div id="modules-sortable" class="space-y-6">
             <?php if ($modules): foreach ($modules as $module): ?>
+                <?php
+                    $module_delete_url = wp_nonce_url(
+                        admin_url(
+                            'admin-post.php?action=lms_delete_elite_content&post_id=' . $module->ID . '&redirect=' . $current_page . '&redirect_url=' . rawurlencode( $curriculum_url )
+                        ),
+                        'lms_delete_content_nonce'
+                    );
+                ?>
                 <div class="module-item bg-onyx/40 border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative group pb-4" data-module-id="<?php echo $module->ID; ?>">
                     
                     <!-- Module Header -->
@@ -121,6 +130,11 @@ $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
                             <a href="<?php echo admin_url('admin.php?page=' . $current_page . '&action=edit&id=' . $module->ID); ?>" class="p-2 hover:bg-gold-500/10 text-gray-400 hover:text-gold-500 rounded-lg transition-all" title="Editar Módulo">
                                 <span class="dashicons dashicons-edit text-sm"></span>
                             </a>
+                            <a href="<?php echo esc_url( $module_delete_url ); ?>"
+                               onclick="return confirm('ATENÇÃO: deseja excluir este módulo permanentemente? As aulas vinculadas ficarão sem módulo até serem vinculadas novamente.');"
+                               class="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/60 hover:text-red-500 rounded-lg transition-all" title="Excluir Módulo Permanentemente">
+                                <span class="dashicons dashicons-trash text-sm"></span>
+                            </a>
                         </div>
                     </div>
 
@@ -129,6 +143,12 @@ $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
                         <?php 
                         if (isset($lessons_by_module[$module->ID])): 
                             foreach ($lessons_by_module[$module->ID] as $lesson): 
+                                $lesson_delete_url = wp_nonce_url(
+                                    admin_url(
+                                        'admin-post.php?action=lms_delete_elite_content&post_id=' . $lesson->ID . '&redirect=' . $current_page . '&redirect_url=' . rawurlencode( $curriculum_url )
+                                    ),
+                                    'lms_delete_content_nonce'
+                                );
                         ?>
                             <div class="curriculum-item flex items-center gap-4 p-3 bg-white/5 border border-white/5 rounded-xl hover:border-gold-500/30 transition-all cursor-move lesson-card" data-lesson-id="<?php echo $lesson->ID; ?>">
                                 <div class="text-zinc-700 hover:text-gold-500 transition-colors">
@@ -143,6 +163,11 @@ $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
                                 <div class="flex items-center gap-2 opacity-50 hover:opacity-100 transition-all">
                                     <a href="<?php echo admin_url('admin.php?page=' . $current_page . '&action=edit&id=' . $lesson->ID); ?>" class="p-1.5 hover:bg-gold-500/10 text-gray-400 hover:text-gold-500 rounded-lg transition-all" title="Editar Aula">
                                         <span class="dashicons dashicons-edit text-xs"></span>
+                                    </a>
+                                    <a href="<?php echo esc_url( $lesson_delete_url ); ?>"
+                                       onclick="return confirm('ATENÇÃO: deseja excluir esta aula permanentemente?');"
+                                       class="p-1.5 bg-red-500/5 hover:bg-red-500/20 text-red-500/60 hover:text-red-500 rounded-lg transition-all" title="Excluir Aula Permanentemente">
+                                        <span class="dashicons dashicons-trash text-xs"></span>
                                     </a>
                                 </div>
                             </div>
@@ -171,14 +196,29 @@ $current_page = isset( $_GET['page'] ) ? $_GET['page'] : 'elite-content';
             <p class="text-xs text-zinc-500 mb-4">Estas aulas estão ligadas ao curso, mas precisam de um módulo na nova estrutura. Entre nelas e vincule a um módulo.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <?php foreach ($orphan_lessons as $lesson): ?>
+                    <?php
+                        $lesson_delete_url = wp_nonce_url(
+                            admin_url(
+                                'admin-post.php?action=lms_delete_elite_content&post_id=' . $lesson->ID . '&redirect=' . $current_page . '&redirect_url=' . rawurlencode( $curriculum_url )
+                            ),
+                            'lms_delete_content_nonce'
+                        );
+                    ?>
                     <div class="flex items-center justify-between p-3 bg-red-900/10 border border-red-500/30 rounded-xl lesson-card" data-lesson-id="<?php echo $lesson->ID; ?>">
                         <div class="flex-1">
                             <h5 class="text-xs font-semibold text-white"><?php echo esc_html($lesson->post_title); ?></h5>
                             <span class="text-[8px] text-zinc-500 uppercase tracking-widest">Aula #<?php echo $lesson->ID; ?></span>
                         </div>
-                        <a href="<?php echo admin_url('admin.php?page=' . $current_page . '&action=edit&id=' . $lesson->ID); ?>" class="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-[9px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all">
-                            Vincular
-                        </a>
+                        <div class="flex items-center gap-2">
+                            <a href="<?php echo admin_url('admin.php?page=' . $current_page . '&action=edit&id=' . $lesson->ID); ?>" class="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded text-[9px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all">
+                                Vincular
+                            </a>
+                            <a href="<?php echo esc_url( $lesson_delete_url ); ?>"
+                               onclick="return confirm('ATENÇÃO: deseja excluir esta aula permanentemente?');"
+                               class="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded text-[9px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all">
+                                Excluir
+                            </a>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>

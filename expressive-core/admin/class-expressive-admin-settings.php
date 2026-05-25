@@ -518,12 +518,45 @@ class Expressive_Admin_Settings {
 			wp_die( 'Acesso negado.' );
 		}
 
-		$post_id  = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
-		$redirect = isset( $_GET['redirect'] ) ? sanitize_text_field( $_GET['redirect'] ) : 'elite-content';
+		$post_id      = isset( $_GET['post_id'] ) ? intval( $_GET['post_id'] ) : 0;
+		$redirect     = isset( $_GET['redirect'] ) ? sanitize_text_field( $_GET['redirect'] ) : 'elite-content';
+		$redirect_url = isset( $_GET['redirect_url'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_url'] ) ) : '';
 
 		if ( $post_id > 0 ) {
-			// Delete permanently
-			wp_delete_post( $post_id, true );
+			$post_type = get_post_type( $post_id );
+
+			if ( in_array( $post_type, array( 'lms_course', 'lms_module', 'lms_lesson', 'lms_live' ), true ) ) {
+				$module_id = 0;
+
+				if ( 'lms_lesson' === $post_type ) {
+					$module_id = intval( get_post_meta( $post_id, '_lms_module_id', true ) );
+				}
+
+				wp_delete_post( $post_id, true );
+
+				if ( 'lms_module' === $post_type ) {
+					$lessons = get_posts( array(
+						'post_type'      => 'lms_lesson',
+						'posts_per_page' => -1,
+						'fields'         => 'ids',
+						'meta_key'       => '_lms_module_id',
+						'meta_value'     => $post_id,
+					) );
+
+					foreach ( $lessons as $lesson_id ) {
+						delete_post_meta( $lesson_id, '_lms_module_id' );
+					}
+				}
+
+				if ( $module_id > 0 ) {
+					$this->recalculate_module_duration( $module_id );
+				}
+			}
+		}
+
+		if ( ! empty( $redirect_url ) ) {
+			wp_redirect( wp_validate_redirect( $redirect_url, admin_url( 'admin.php?page=' . $redirect . '&message=deleted' ) ) );
+			exit;
 		}
 
 		wp_redirect( admin_url( 'admin.php?page=' . $redirect . '&message=deleted' ) );
