@@ -3,7 +3,7 @@
  * Plugin Name:       Área de Membros Elite - Gold Edition
  * Plugin URI:        https://dominai.cloud
  * Description:       Um plugin luxuoso de criação e gerenciamento de área de membros e gestão de aulas no WordPress.
- * Version:           1.0.2
+ * Version:           1.0.3
  * Author:            Alex Alves
  * Author URI:        https://dominai.cloud/
  * License:           GPL-2.0+
@@ -27,10 +27,10 @@ if ( ! defined( 'WPINC' ) ) {
 
 /**
  * Currently plugin version.
- * Start at version 1.0.2 and use SemVer - https://semver.org
+ * Start at version 1.0.3 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'MULTINIVEL_MARKETING_VERSION', '1.0.2' );
+define( 'MULTINIVEL_MARKETING_VERSION', '1.0.3' );
 
 /**
  * The code that runs during plugin activation.
