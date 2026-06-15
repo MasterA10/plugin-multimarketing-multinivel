@@ -18,7 +18,10 @@ $title = $post_obj ? $post_obj->post_title : '';
 $content = $post_obj ? $post_obj->post_content : '';
 $role = $post_obj ? get_post_meta($post_id, '_academy_member_role', true) : '';
 $background = $post_obj ? get_post_meta($post_id, '_academy_member_background', true) : '';
-$tier = $post_obj ? get_post_meta($post_id, '_academy_member_tier', true) : 'grand_master';
+$tier = $post_obj ? get_post_meta($post_id, '_academy_member_tier', true) : 'grandmaster';
+if ($tier === 'grand_master') {
+    $tier = 'grandmaster';
+}
 $instagram = $post_obj ? get_post_meta($post_id, '_academy_member_instagram', true) : '';
 
 $editor_title = ($post_id > 0) ? 'Editar Profissional' : 'Novo Membro da Equipe';
@@ -132,7 +135,7 @@ $editor_title = ($post_id > 0) ? 'Editar Profissional' : 'Novo Membro da Equipe'
                                 <span class="text-xs text-gray-400 group-hover/opt:text-white transition-colors">Direção e Liderança</span>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer group/opt">
-                                <input type="radio" name="academy_member_tier" value="grand_master" <?php checked($tier, 'grand_master'); ?> class="accent-gold-500">
+                                <input type="radio" name="academy_member_tier" value="grandmaster" <?php checked($tier, 'grandmaster'); ?> class="accent-gold-500">
                                 <span class="text-xs text-gray-400 group-hover/opt:text-white transition-colors">Grand Master</span>
                             </label>
                             <label class="flex items-center gap-3 cursor-pointer group/opt">

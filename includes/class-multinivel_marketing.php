@@ -70,7 +70,7 @@ class Multinivel_marketing {
 		if ( defined( 'MULTINIVEL_MARKETING_VERSION' ) ) {
 			$this->version = MULTINIVEL_MARKETING_VERSION;
 		} else {
-			$this->version = '1.0.3';
+			$this->version = '1.0.4';
 		}
 		$this->plugin_name = 'multinivel_marketing';
 

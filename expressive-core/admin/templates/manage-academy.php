@@ -29,6 +29,10 @@ $grouped_members = array(
 
 foreach ( $all_posts as $post ) {
     $tier = get_post_meta( $post->ID, '_academy_member_tier', true ) ?: 'convidado';
+    if ( $tier === 'grand_master' ) {
+        $tier = 'grandmaster';
+    }
+
     if ( isset( $grouped_members[$tier] ) ) {
         $grouped_members[$tier][] = $post;
     } else {

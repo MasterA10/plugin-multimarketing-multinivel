@@ -477,7 +477,11 @@ class Expressive_Admin_Settings {
 		// Custom Meta
 		update_post_meta( $post_id, '_academy_member_role', sanitize_text_field( $_POST['academy_member_role'] ) );
 		update_post_meta( $post_id, '_academy_member_background', sanitize_textarea_field( $_POST['academy_member_background'] ) );
-		update_post_meta( $post_id, '_academy_member_tier', sanitize_text_field( $_POST['academy_member_tier'] ) );
+		$tier = sanitize_text_field( $_POST['academy_member_tier'] );
+		if ( $tier === 'grand_master' ) {
+			$tier = 'grandmaster';
+		}
+		update_post_meta( $post_id, '_academy_member_tier', $tier );
 		
 		$insta = ltrim( sanitize_text_field( $_POST['academy_member_instagram'] ), '@' );
 		update_post_meta( $post_id, '_academy_member_instagram', $insta );

@@ -26,6 +26,9 @@ if ($query->have_posts()) {
     while ($query->have_posts()) {
         $query->the_post();
         $tier = get_post_meta(get_the_ID(), '_academy_member_tier', true) ?: 'convidado';
+        if ($tier === 'grand_master') {
+            $tier = 'grandmaster';
+        }
         
         if (isset($members_by_tier[$tier])) {
             $members_by_tier[$tier][] = array(
@@ -452,7 +455,7 @@ $sections = array(
             <?php endif; ?>
         <?php endforeach; ?>
 
-        <?php if (empty($members_by_tier['lideranca']) && empty($members_by_tier['grand_master']) && empty($members_by_tier['convidado'])) : ?>
+        <?php if (empty($members_by_tier['lideranca']) && empty($members_by_tier['grandmaster']) && empty($members_by_tier['convidado'])) : ?>
             <div style="text-align: center; padding: 100px 0; color: #555;">
                 <p>Nenhum membro cadastrado ainda.</p>
             </div>

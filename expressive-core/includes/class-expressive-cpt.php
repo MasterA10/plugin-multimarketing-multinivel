@@ -405,6 +405,9 @@ class Expressive_CPT {
 		$role       = get_post_meta( $post->ID, '_academy_member_role', true );
 		$background = get_post_meta( $post->ID, '_academy_member_background', true );
 		$tier       = get_post_meta( $post->ID, '_academy_member_tier', true ) ?: 'convidado';
+		if ( $tier === 'grand_master' ) {
+			$tier = 'grandmaster';
+		}
 		
 		wp_nonce_field( 'academy_member_meta_box_nonce', 'academy_member_meta_box_nonce' );
 		?>
@@ -469,7 +472,11 @@ class Expressive_CPT {
 		}
 
 		if ( isset( $_POST['academy_member_tier'] ) ) {
-			update_post_meta( $post_id, '_academy_member_tier', sanitize_text_field( $_POST['academy_member_tier'] ) );
+			$tier = sanitize_text_field( $_POST['academy_member_tier'] );
+			if ( $tier === 'grand_master' ) {
+				$tier = 'grandmaster';
+			}
+			update_post_meta( $post_id, '_academy_member_tier', $tier );
 		}
 	}
 
